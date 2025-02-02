@@ -2,10 +2,14 @@
 
 from getpass import getpass
 from os import system as execute
+from re import findall
+from sys import stdin
 from typing import Any, Literal, NoReturn, final, overload
 
 from colorama import just_fix_windows_console
 from unidecode import unidecode
+
+# TODO: file input, file output, Cursor.get_pos, Cursor.set_pos
 
 _ESCAPE = "\033"
 
@@ -127,7 +131,17 @@ class Cursor:
     LEFT = f"{_ESCAPE}[1D"
 
     @staticmethod
-    def set(column: int, line: int) -> str:
+    def get_pos() -> tuple[int, int]:
+        print(f"{_ESCAPE}[6n", flush=True, end="")
+
+        buf = ""
+        while (c := stdin.read(1)) != "R":
+            buf += c
+
+        return tuple(map(int, findall(r"\d+", buf)))  # type: ignore
+
+    @staticmethod
+    def set_pos(column: int, line: int) -> str:
         return f"{_ESCAPE}[{line};{column}H"
 
     @staticmethod
