@@ -1,276 +1,27 @@
-# reference: https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
+from __future__ import annotations
 
 from getpass import getpass
 from os import system as execute
-from re import findall
-from sys import stdin
-from typing import Any, Literal, NoReturn, final, overload
+from sys import stdin, stdout
+from typing import Any, NoReturn, TextIO, overload
 
-from colorama import just_fix_windows_console
 from unidecode import unidecode
 
-# TODO: file input, file output, Cursor.get_pos, Cursor.set_pos
-
-_ESCAPE = "\033"
-
-just_fix_windows_console()
-
-
-@final
-class Foreground:
-    """Foreground colors."""
-
-    BLACK = f"{_ESCAPE}[30m"
-    RED = f"{_ESCAPE}[31m"
-    GREEN = f"{_ESCAPE}[32m"
-    YELLOW = f"{_ESCAPE}[33m"
-    BLUE = f"{_ESCAPE}[34m"
-    MAGENTA = f"{_ESCAPE}[35m"
-    CYAN = f"{_ESCAPE}[36m"
-    WHITE = f"{_ESCAPE}[37m"
-
-    @staticmethod
-    def make_rgb(r: int, g: int, b: int) -> str:
-        """
-        Creates a True Color Escape Code Sequence for the foreground color using the RGB values provided.
-        Note that this functionality is not supported by all terminals.
-
-        ### Args:
-            r (int): red channel
-            g (int): green channel
-            b (int): blue channel
-
-        ### Returns:
-            str: Escape Code Sequence
-        """
-        return f"{_ESCAPE}[38;2;{r};{g};{b}m"
-
-    @staticmethod
-    def make(code: int) -> str:
-        """
-        Creates an Escape Code Sequence for the foreground color using the ANSI Code provided.
-
-        ### Args:
-            code (int): code
-
-        ### Returns:
-            str: Escape Code Sequence
-        """
-        return f"{_ESCAPE}[{code}m"
-
-
-@final
-class Background:
-    """Background colors."""
-
-    BLACK = f"{_ESCAPE}[40m"
-    RED = f"{_ESCAPE}[41m"
-    GREEN = f"{_ESCAPE}[42m"
-    YELLOW = f"{_ESCAPE}[43m"
-    BLUE = f"{_ESCAPE}[44m"
-    MAGENTA = f"{_ESCAPE}[45m"
-    CYAN = f"{_ESCAPE}[46m"
-    WHITE = f"{_ESCAPE}[47m"
-
-    @staticmethod
-    def make_rgb(r: int, g: int, b: int) -> str:
-        """
-        Creates a True Color Escape Code Sequence for the background color using the RGB values provided.
-        Note that this functionality is not supported by all terminals.
-
-        ### Args:
-            r (int): red channel
-            g (int): green channel
-            b (int): blue channel
-
-        ### Returns:
-            str: Escape Code Sequence
-        """
-        return f"{_ESCAPE}[48;2;{r};{g};{b}m"
-
-    @staticmethod
-    def make(code: int) -> str:
-        """
-        Creates an Escape Code Sequence for the background color using the ANSI Code provided.
-
-        ### Args:
-            code (int): code
-
-        ### Returns:
-            str: Escape Code Sequence
-        """
-        return f"{_ESCAPE}[{code}m"
-
-
-@final
-class Modifier:
-    """Color/Graphics modifiers."""
-
-    RESET = f"{_ESCAPE}[0m"
-    BOLD = f"{_ESCAPE}[1m"
-    DIM = f"{_ESCAPE}[2m"
-    FAINT = f"{_ESCAPE}[2m"
-    ITALIC = f"{_ESCAPE}[3m"
-    UNDERLINE = f"{_ESCAPE}[4m"
-    BLINK = f"{_ESCAPE}[5m"
-    REVERSE = f"{_ESCAPE}[7m"
-    INVERSE = f"{_ESCAPE}[7m"
-    HIDDEN = f"{_ESCAPE}[8m"
-    INVISIBLE = f"{_ESCAPE}[8m"
-    STRIKETHROUGH = f"{_ESCAPE}[9m"
-
-
-@final
-class Cursor:
-    """Cursor movement codes."""
-
-    HOME = f"{_ESCAPE}[H"
-    UP = f"{_ESCAPE}[1A"
-    DOWN = f"{_ESCAPE}[1B"
-    RIGHT = f"{_ESCAPE}[1C"
-    LEFT = f"{_ESCAPE}[1D"
-
-    @staticmethod
-    def get_pos() -> tuple[int, int]:
-        print(f"{_ESCAPE}[6n", flush=True, end="")
-
-        buf = ""
-        while (c := stdin.read(1)) != "R":
-            buf += c
-
-        return tuple(map(int, findall(r"\d+", buf)))  # type: ignore
-
-    @staticmethod
-    def set_pos(column: int, line: int) -> str:
-        return f"{_ESCAPE}[{line};{column}H"
-
-    @staticmethod
-    def up(lines: int = 1) -> str:
-        """
-        Moves cursor up by the number of lines provided.
-
-        ### Args:
-            lines (int, optional): Number of lines to move. Defaults to 1.
-
-        ### Returns:
-            str: Escape Code Sequence
-        """
-        return f"{_ESCAPE}[{lines}1A"
-
-    @staticmethod
-    def down(lines: int = 1) -> str:
-        """
-        Moves cursor down by the number of lines provided.
-
-        ### Args:
-            lines (int, optional): Number of lines to move. Defaults to 1.
-
-        ### Returns:
-            str: Escape Code Sequence
-        """
-        return f"{_ESCAPE}[{lines}1B"
-
-    @staticmethod
-    def right(columns: int = 1) -> str:
-        """
-        Moves cursor to the right by the number of columns provided.
-
-        ### Args:
-            columns (int, optional): Number of columns to move. Defaults to 1.
-
-        ### Returns:
-            str: Escape Code Sequence
-        """
-        return f"{_ESCAPE}[{columns}1C"
-
-    @staticmethod
-    def left(columns: int = 1) -> str:
-        """
-        Moves cursor to the left by the number of columns provided.
-
-        ### Args:
-            columns (int, optional): Number of columns to move. Defaults to 1.
-
-        ### Returns:
-            str: Escape Code Sequence
-        """
-        return f"{_ESCAPE}[{columns}1D"
-
-    @staticmethod
-    def save_pos(sequence: Literal["DEC", "SCO"] = "DEC") -> str:
-        """
-        Saves the current cursor position for use with restore_pos at a later time.
-
-        ### Note:
-        The escape sequences for "save cursor position" and "restore cursor position" were never standardised as part of
-        the ANSI (or subsequent) specs, resulting in two different sequences known in some circles as "DEC" and "SCO":
-            DEC: ESC7 (save) and ESC8 (restore)
-            SCO: ESC[s (save) and ESC[u (restore)
-
-        Different terminals (and OSes) support different combinations of these sequences (one, the other, neither or both);
-        for example the iTerm2 terminal on macOS supports both, while the built-in macOS Terminal.app only supports the DEC sequences.
-
-        Source:
-            https://github.com/fusesource/jansi/issues/226
-            https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797#:~:text=saved%20position%20(SCO)-,Note,-%3A%20Some%20sequences
-
-        ### Args:
-            sequence (Literal["DEC", "SCO"], optional): which sequence to use. Defaults to "DEC".
-
-        ### Returns:
-            str: Escape Code Sequence
-        """
-        return f"{_ESCAPE}7" if sequence == "DEC" else f"{_ESCAPE}[s"
-
-    @staticmethod
-    def restore_pos(sequence: Literal["DEC", "SCO"] = "DEC") -> str:
-        """
-        Restores the current cursor position, which was previously saved with save_pos.
-
-        ### Note:
-        The escape sequences for "save cursor position" and "restore cursor position" were never standardised as part of
-        the ANSI (or subsequent) specs, resulting in two different sequences known in some circles as "DEC" and "SCO":
-            DEC: ESC7 (save) and ESC8 (restore)
-            SCO: ESC[s (save) and ESC[u (restore)
-
-        Different terminals (and OSes) support different combinations of these sequences (one, the other, neither or both);
-        for example the iTerm2 terminal on macOS supports both, while the built-in macOS Terminal.app only supports the DEC sequences.
-
-        Source:
-            https://github.com/fusesource/jansi/issues/226
-            https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797#:~:text=saved%20position%20(SCO)-,Note,-%3A%20Some%20sequences
-
-        ### Args:
-            sequence (Literal["DEC", "SCO"], optional): which sequence to use. Defaults to "DEC".
-
-        ### Returns:
-            str: Escape Code Sequence
-        """
-        return f"{_ESCAPE}8" if sequence == "DEC" else f"{_ESCAPE}[u"
-
-
-@final
-class Erase:
-    """Erase codes."""
-
-    CURSOR_TO_END = f"{_ESCAPE}[0J"
-    CURSOR_TO_ENDL = f"{_ESCAPE}[0K"
-    START_TO_CURSOR = f"{_ESCAPE}[1K"
-    START_TO_END = f"{_ESCAPE}[1J"
-    SCREEN = f"{_ESCAPE}[2J"
-    LINE = f"{_ESCAPE}[2K"
-
-    @staticmethod
-    def lines(count: int = 1, /) -> list[str]:
-        return [Cursor.UP + Erase.LINE for _ in range(count)]
+from .core import (
+    Erase,
+    Foreground,
+    Modifier,
+)
 
 
 class Console:
-    """A simple class to make console output easier and more consistent!"""
+    """A helper class to make better looking, and more consistent console output!"""
 
     @overload
     def __init__(
         self,
+        file_out: TextIO = stdout,
+        file_in: TextIO = stdin,
         *,
         prompt_color: str,
         input_color: str,
@@ -282,20 +33,43 @@ class Console:
     ) -> None: ...
 
     @overload
-    def __init__(self, **kwargs: str) -> None: ...
+    def __init__(
+        self, file_out: TextIO = stdout, file_in: TextIO = stdin, **kwargs: str
+    ) -> None: ...
 
-    def __init__(self, **kwargs: str) -> None:
-        self._prompt_color: str = kwargs.get("prompt_color", Foreground.CYAN)
-        self._input_color: str = kwargs.get("input_color", Modifier.RESET)
-        self._arrow_color: str = kwargs.get(
+    def __init__(
+        self, file_out: TextIO = stdout, file_in: TextIO = stdin, **kwargs: str
+    ) -> None:
+        """
+        Initializes a new instance of the Console class.
+
+        ### Args:
+            file_out (TextIO, optional): The file to write output to. Defaults to stdout.
+            file_in (TextIO, optional): The file to read input from. Defaults to stdin.
+
+        ### **kwargs:
+            prompt_color (str, optional): The color to use for prompts. Defaults to Foreground.CYAN.
+            input_color (str, optional): The color to use for input. Defaults to Modifier.RESET.
+            arrow_color (str, optional): The color to use for arrows. Defaults to Foreground.GREEN + Modifier.BOLD.
+            error_color (str, optional): The color to use for errors. Defaults to Foreground.RED.
+            hint_color (str, optional): The color to use for hints. Defaults to Foreground.YELLOW.
+            panic_color (str, optional): The color to use for panics. Defaults to Foreground.RED + Modifier.BOLD.
+            arrow (str, optional): The arrow to use. Defaults to ">>".
+        """
+        self.file_out = file_out
+        self.file_in = file_in
+
+        self.prompt_color: str = kwargs.get("prompt_color", Foreground.CYAN)
+        self.input_color: str = kwargs.get("input_color", Modifier.RESET)
+        self.arrow_color: str = kwargs.get(
             "arrow_color", Foreground.GREEN + Modifier.BOLD
         )
-        self._error_color: str = kwargs.get("error_color", Foreground.RED)
-        self._hint_color: str = kwargs.get("hint_color", Foreground.YELLOW)
-        self._panic_color: str = kwargs.get(
+        self.error_color: str = kwargs.get("error_color", Foreground.RED)
+        self.hint_color: str = kwargs.get("hint_color", Foreground.YELLOW)
+        self.panic_color: str = kwargs.get(
             "panic_color", Foreground.RED + Modifier.BOLD
         )
-        self._arrow = kwargs.get("arrow", ">>")
+        self.arrow_ = kwargs.get("arrow", ">>")
 
     def print(
         self,
@@ -303,17 +77,24 @@ class Console:
         color: str = Modifier.RESET,
         /,
         *,
-        sep: str = " ",
         end: str = "\n",
         flush: bool = False,
-        newline: bool = True,
     ) -> None:
-        print(
-            f"{color}{str(text)}{Modifier.RESET}",
-            end=end if newline else " ",
-            flush=flush,
-            sep=sep,
+        """
+        Prints the specified text to the console with the specified color.
+
+        ### Args:
+            text (Any): The text to print.
+            color (str, optional): The color to use. Defaults to Modifier.RESET.
+            end (str, optional): The end to use. Defaults to "\n".
+            flush (bool, optional): Whether to flush the output. Defaults to False.
+        """
+        self.file_out.write(
+            f"{color}{str(text)}{Modifier.RESET}" + end,
         )
+
+        if flush:
+            self.file_out.flush()
 
     def input(
         self,
@@ -324,10 +105,27 @@ class Console:
         ensure_not_empty: bool = True,
         is_password: bool = False,
     ) -> str:
-        self.print(prompt, self._prompt_color)
+        """
+        Prompts the user for input with the specified prompt.
+
+        ### Args:
+            prompt (str): The prompt to display.
+            invalid_values (list[str], optional): A list of invalid values. Defaults to None.
+            ensure_not_empty (bool, optional): Whether to ensure the input is not empty. Defaults to True.
+            is_password (bool, optional): Whether to hide the input. Defaults to False.
+
+        ### Returns:
+            str: The user's input.
+        """
+        self.print(prompt, self.prompt_color)
         self.arrow(flush=True)
 
-        res = (getpass if is_password else input)("").strip()
+        if is_password:
+            res = getpass("")
+        else:
+            res = self.file_in.readline()
+
+        res = res.strip()
 
         invalid_values = invalid_values or []
 
@@ -356,14 +154,27 @@ class Console:
         title: bool = True,
         format: bool = True,
     ) -> str:
+        """
+        Prompts the user to select an option from a list of options.
+
+        ### Args:
+            prompt (str): The prompt to display.
+            options (list[str], optional): A list of options. Defaults to ["Yes", "No"].
+            wrapper (str, optional): The wrapper to use around the options. Defaults to "[]". Example: "[x] or [y]". Can also be None or empty. Example: "x or y".
+            title (bool, optional): Whether to make the first character in every option uppercase. Defaults to True.
+            format (bool, optional): Whether to the two formatting options described above. Defaults to True.
+
+        ### Returns:
+            str: The user's selection.
+        """
         options = options or ["Yes", "No"]
         wrapper = wrapper or ""
 
         simplified_options = list(map(lambda o: unidecode(o).lower(), options))
 
-        formatted_options = self.items(
+        formatted_options = self._format_items(
             *[
-                self._surround(option, wrapper, title) if format else option
+                self._surround(option, wrapper, title=title) if format else option
                 for option in options
             ]
         )
@@ -385,19 +196,26 @@ class Console:
                 hint=f"Choose one among the following options: {formatted_options}.",
             )
 
-    def items(
-        self,
-        *items: Any,
-        sep: str = ", ",
-        final_sep: str = " or ",
-    ) -> str:
-        return self._reverse_replace(sep.join(map(str, items)), sep, final_sep)
-
     def error(self, error: Exception | str, /, *, hint: str = "") -> None:
-        self.print(error, self._error_color)
-        _ = hint and self.print(hint, self._hint_color)
+        """
+        Prints an error message to the console.
+
+        ### Args:
+            error (Exception | str): The error to print.
+            hint (str, optional): A hint to display. Defaults to "".
+        """
+        self.print(error, self.error_color)
+        _ = hint and self.print(hint, self.hint_color)
 
     def panic(self, error: str, /, *, hint: str = "", code: int = -1) -> NoReturn:
+        """
+        Prints an error message to the console and exits the program with the specified code.
+
+        ### Args:
+            error (str): The error to print.
+            hint (str, optional): A hint to display. Defaults to "".
+            code (int, optional): The exit code. Defaults to -1.
+        """
         self.error(error, hint=hint)
         self.enter_to_continue()
         exit(code)
@@ -405,30 +223,119 @@ class Console:
     def arrow(
         self, text: str = "", color: str = Modifier.RESET, /, *, flush: bool = False
     ) -> None:
-        self.print(self._arrow, self._arrow_color, newline=False, flush=flush)
+        """
+        Prints an arrow to the console.
+
+        ### Args:
+            text (str, optional): The text to display after the arrow. Defaults to "".
+            color (str, optional): The color to use. Defaults to Modifier.RESET.
+            flush (bool, optional): Whether to flush the output. Defaults to False.
+        """
+        self.print(self.arrow_, self.arrow_color, end="", flush=flush)
         _ = text and self.print(text, color)
 
     def actions(self, *args: str) -> None:
+        """
+        Helper method to print multiple escape codes, joined by newlines.
+
+        ### Args:
+            *args (str): The escape codes to print.
+
+        ### Example:
+            >>> console.actions(*Erase.lines(2), Cursor.UP + Cursor.LEFT)
+        """
         self.print("\n".join(args), end="")
 
     def enter_to_continue(self, text: str = "Press enter to continue...") -> None:
+        """
+        Prompts the user to press enter to continue.
+
+        ### Args:
+            text (str, optional): The text to display. Defaults to "Press enter to continue...".
+        """
         self.input(text, ensure_not_empty=False, is_password=True)
         self.erase_lines(2)
 
     def erase_lines(self, count: int = 1, /) -> None:
+        """
+        Erases the specified number of lines.
+
+        ### Args:
+            count (int, optional): The number of lines to erase. Defaults to 1.
+        """
         self.actions(*Erase.lines(count))
 
-    def clear(self):
+    def clear(self) -> None:
+        """Clears the console."""
         execute("cls||clear")
 
-    def _surround(self, text: str, wrapper: str, title: bool = True) -> str:
-        w1, w2 = self._cut_at(wrapper)
+    def _format_items(
+        self,
+        *items: Any,
+        sep: str = ", ",
+        final_sep: str = " or ",
+    ) -> str:
+        """
+        Formats a list of items into a string with the specified separator and final separator.
+
+        ### Args:
+            *items (Any): The items to format.
+            sep (str, optional): The separator to use. Defaults to ", ".
+            final_sep (str, optional): The final separator to use. Defaults to " or ".
+
+        ### Returns:
+            str: The formatted string.
+
+        ### Example:
+            >>> console._format_items("apple", "banana", "cherry")
+            "apple, banana or cherry"
+        """
+        return self._reverse_replace(sep.join(map(str, items)), sep, final_sep)
+
+    def _surround(self, text: str, wrapper: str, /, *, title: bool = True) -> str:
+        """
+        Surrounds the specified text with the specified wrapper.
+
+        ### Args:
+            text (str): The text to surround.
+            wrapper (str): The wrapper to use.
+            title (bool, optional): Whether to make the first character in the text uppercase. Defaults to True.
+
+        ### Returns:
+            str: The surrounded text.
+        """
+        w1, w2 = self._half_str(wrapper)
         return f"{w1}{text.title() if title else text}{w2}"
 
-    def _cut_at(self, text: str, t: float = 0.5) -> tuple[str, str]:
-        size = len(text)
-        where = round(size * t)
+    def _half_str(self, text: str, /, *, at: float = 0.5) -> tuple[str, str]:
+        """
+        Halves the specified text at the specified position.
+
+        ### Args:
+            text (str): The text to cut.
+            at (float, optional): The position to cut at. Defaults to 0.5.
+
+        ### Returns:
+            tuple[str, str]: Each half of the text.
+        """
+        where = round(len(text) * at)
         return (text[:where], text[where:])
 
-    def _reverse_replace(self, text: str, old: str, new: str) -> str:
+    def _reverse_replace(self, text: str, old: str, new: str, /) -> str:
+        """
+        Replaces a single occurrence of a substring in a string with another substring, starting from the end of the string.\n
+        Specifically used to replace the last separator in `_format_items` with the final separator.
+
+        ### Args:
+            text (str): The text to replace in.
+            old (str): The substring to replace.
+            new (str): The substring to replace it with.
+
+        ### Returns:
+            str: The replaced text.
+
+        ### Example:
+            >>> console._reverse_replace("apple, banana or cherry", " or ", ", ")
+            "apple, banana, cherry"
+        """
         return new.join(text.rsplit(old, 1))

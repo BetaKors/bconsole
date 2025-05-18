@@ -6,4 +6,4 @@ Requires [colorama](https://pypi.org/project/colorama/) for windows compatibilit
 
 ## Usage
 
-See bconsole/examples for examples.
+See [bconsole/examples](https://github.com/BetaKors/bconsole/tree/main/bconsole/examples) for examples.

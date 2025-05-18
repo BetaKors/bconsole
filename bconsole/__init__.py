@@ -1,8 +1,34 @@
 """A simple module to make it a little less painful to make console applications."""
 
-from .console import Background, Console, Cursor, Erase, Foreground, Modifier
-
+__title__ = "bconsole"
 __author__ = "BetaKors"
-__version__ = "0.0.2"
+__version__ = "0.0.4"
 __license__ = "MIT"
-__all__ = ["Background", "Console", "Cursor", "Erase", "Foreground", "Modifier"]
+__url__ = "https://github.com/BetaKors/bconsole"
+
+from colorama import just_fix_windows_console
+
+from .console import Console
+from .core import (
+    Background,
+    Cursor,
+    Erase,
+    Foreground,
+    Modifier,
+)
+from .logger import ColoredLogger, Logger, LogLevel
+
+just_fix_windows_console()
+del just_fix_windows_console
+
+__all__ = [
+    "Background",
+    "Console",
+    "ColoredLogger",
+    "Cursor",
+    "Erase",
+    "Foreground",
+    "Logger",
+    "LogLevel",
+    "Modifier",
+]

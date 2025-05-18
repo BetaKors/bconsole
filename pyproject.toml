@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "bconsole"
-version = "0.0.3"
-description = "A simple module to make it a little less painful to use console applications."
+version = "0.0.4"
+description = "A simple module to make it a little less painful to make console applications."
 authors = ["BetaKors"]
 readme = "README.md"
 license = "MIT"
@@ -24,12 +24,8 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: Implementation :: CPython",
-    "Programming Language :: Python :: Implementation :: PyPy",
     "Programming Language :: Python",
     "Topic :: Terminals",
 ]

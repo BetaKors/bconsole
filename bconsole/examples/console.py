@@ -21,6 +21,6 @@ console.erase_lines(2)
 
 console.arrow("I just did something important!")
 
-console.error("Something went wrong!")
-console.panic("Something went really wrong!", code=1)
+console.error("Something went wrong!", hint="Maybe you should try again?")
+console.panic("Something went really wrong!", code=-1)
 console.print("This will not be printed.")
