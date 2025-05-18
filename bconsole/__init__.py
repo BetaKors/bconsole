@@ -2,7 +2,7 @@
 
 __title__ = "bconsole"
 __author__ = "BetaKors"
-__version__ = "0.0.4"
+__version__ = "0.0.5"
 __license__ = "MIT"
 __url__ = "https://github.com/BetaKors/bconsole"
 
@@ -16,7 +16,7 @@ from .core import (
     Foreground,
     Modifier,
 )
-from .logger import ColoredLogger, Logger, LogLevel
+from .logger import ColoredLogger, Logger, LogLevel, LogLevelLike
 
 just_fix_windows_console()
 del just_fix_windows_console
@@ -30,5 +30,6 @@ __all__ = [
     "Foreground",
     "Logger",
     "LogLevel",
+    "LogLevelLike",
     "Modifier",
 ]

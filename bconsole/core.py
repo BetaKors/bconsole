@@ -1,15 +1,36 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+from abc import ABC, ABCMeta, abstractmethod
 from os import getenv
 from re import findall as find_all
 from sys import stdin, stdout
-from typing import Literal, TextIO, final, override
+from typing import Any, Final, Literal, NoReturn, TextIO, final, override
 
 _ESCAPE = getenv("BCONSOLE_ESCAPE", "\033")
 
 
-class TerminalColor(ABC):
+__all__ = ["TerminalColor", "Foreground", "Background", "Modifier", "Cursor", "Erase"]
+
+
+class _ImmutableMeta(type):
+    """Metaclass for immutable classes."""
+
+    @final
+    def __setattr__(cls, name: str, value: Any) -> None:
+        if name in cls.__dict__:
+            raise AttributeError(f"Cannot reassign constant {name!r}")
+        super().__setattr__(name, value)
+
+    @final
+    def __delattr__(cls, name: str) -> NoReturn:
+        raise AttributeError(f"Cannot delete attribute {name!r}")
+
+
+class _ABCImmutableMeta(ABCMeta, _ImmutableMeta):
+    """Metaclass for immutable ABCs."""
+
+
+class TerminalColor(ABC, metaclass=_ABCImmutableMeta):
     """Abstract class for terminal colors."""
 
     @staticmethod
@@ -63,14 +84,14 @@ class TerminalColor(ABC):
 class Foreground(TerminalColor):
     """Foreground colors."""
 
-    BLACK = f"{_ESCAPE}[30m"
-    RED = f"{_ESCAPE}[31m"
-    GREEN = f"{_ESCAPE}[32m"
-    YELLOW = f"{_ESCAPE}[33m"
-    BLUE = f"{_ESCAPE}[34m"
-    MAGENTA = f"{_ESCAPE}[35m"
-    CYAN = f"{_ESCAPE}[36m"
-    WHITE = f"{_ESCAPE}[37m"
+    BLACK: Final = f"{_ESCAPE}[30m"
+    RED: Final = f"{_ESCAPE}[31m"
+    GREEN: Final = f"{_ESCAPE}[32m"
+    YELLOW: Final = f"{_ESCAPE}[33m"
+    BLUE: Final = f"{_ESCAPE}[34m"
+    MAGENTA: Final = f"{_ESCAPE}[35m"
+    CYAN: Final = f"{_ESCAPE}[36m"
+    WHITE: Final = f"{_ESCAPE}[37m"
 
     @override
     @staticmethod
@@ -82,14 +103,14 @@ class Foreground(TerminalColor):
 class Background(TerminalColor):
     """Background colors."""
 
-    BLACK = f"{_ESCAPE}[40m"
-    RED = f"{_ESCAPE}[41m"
-    GREEN = f"{_ESCAPE}[42m"
-    YELLOW = f"{_ESCAPE}[43m"
-    BLUE = f"{_ESCAPE}[44m"
-    MAGENTA = f"{_ESCAPE}[45m"
-    CYAN = f"{_ESCAPE}[46m"
-    WHITE = f"{_ESCAPE}[47m"
+    BLACK: Final = f"{_ESCAPE}[40m"
+    RED: Final = f"{_ESCAPE}[41m"
+    GREEN: Final = f"{_ESCAPE}[42m"
+    YELLOW: Final = f"{_ESCAPE}[43m"
+    BLUE: Final = f"{_ESCAPE}[44m"
+    MAGENTA: Final = f"{_ESCAPE}[45m"
+    CYAN: Final = f"{_ESCAPE}[46m"
+    WHITE: Final = f"{_ESCAPE}[47m"
 
     @override
     @staticmethod
@@ -98,47 +119,51 @@ class Background(TerminalColor):
 
 
 @final
-class Modifier:
+class Modifier(metaclass=_ImmutableMeta):
     """Color/Graphics modifiers."""
 
-    NONE = f"{_ESCAPE}[0m"
-    RESET = f"{_ESCAPE}[0m"
-    BOLD = f"{_ESCAPE}[1m"
-    DIM = f"{_ESCAPE}[2m"
-    FAINT = f"{_ESCAPE}[2m"
-    ITALIC = f"{_ESCAPE}[3m"
-    UNDERLINE = f"{_ESCAPE}[4m"
-    BLINK = f"{_ESCAPE}[5m"
-    INVERSE = f"{_ESCAPE}[7m"
-    HIDDEN = f"{_ESCAPE}[8m"
-    INVISIBLE = f"{_ESCAPE}[8m"
-    STRIKETHROUGH = f"{_ESCAPE}[9m"
+    NONE: Final = f"{_ESCAPE}[0m"
+    RESET: Final = f"{_ESCAPE}[0m"
+    BOLD: Final = f"{_ESCAPE}[1m"
+    DIM: Final = f"{_ESCAPE}[2m"
+    FAINT: Final = f"{_ESCAPE}[2m"
+    ITALIC: Final = f"{_ESCAPE}[3m"
+    UNDERLINE: Final = f"{_ESCAPE}[4m"
+    BLINK: Final = f"{_ESCAPE}[5m"
+    INVERSE: Final = f"{_ESCAPE}[7m"
+    HIDDEN: Final = f"{_ESCAPE}[8m"
+    INVISIBLE: Final = f"{_ESCAPE}[8m"
+    STRIKETHROUGH: Final = f"{_ESCAPE}[9m"
 
 
 @final
-class Cursor:
+class Cursor(metaclass=_ImmutableMeta):
     """Cursor movement codes."""
 
-    HOME = f"{_ESCAPE}[H"
-    UP = f"{_ESCAPE}[1A"
-    DOWN = f"{_ESCAPE}[1B"
-    RIGHT = f"{_ESCAPE}[1C"
-    LEFT = f"{_ESCAPE}[1D"
+    HOME: Final = f"{_ESCAPE}[H"
+    UP: Final = f"{_ESCAPE}[1A"
+    DOWN: Final = f"{_ESCAPE}[1B"
+    RIGHT: Final = f"{_ESCAPE}[1C"
+    LEFT: Final = f"{_ESCAPE}[1D"
 
     @staticmethod
-    def get_pos(file: TextIO = stdout) -> tuple[int, int]:
+    def get_pos(file_in: TextIO = stdin, file_out: TextIO = stdout) -> tuple[int, int]:
         """
         Gets the current cursor position.\n
         Note that this functionality is not supported by all terminals.
 
+        ### Args:
+            file_in (TextIO, optional): The file to read the response from. Defaults to stdin.
+            file_out (TextIO, optional): The file to write to. Defaults to stdout.
+
         ### Returns:
             tuple[int, int]: The current cursor position.
         """
-        stdout.write(f"{_ESCAPE}[6n")
-        stdout.flush()
+        file_out.write(f"{_ESCAPE}[6n")
+        file_out.flush()
 
         buf = ""
-        while (c := stdin.read(1)) != "R":
+        while (c := file_in.read(1)) != "R":
             buf += c
 
         return tuple(map(int, find_all(r"\d+", buf)))  # type: ignore
@@ -215,16 +240,16 @@ class Cursor:
         """
         Saves the current cursor position for use with restore_pos at a later time.
 
-        ### Note:
+        #### Note:
         The escape sequences for "save cursor position" and "restore cursor position" were never standardised as part of
-        the ANSI (or subsequent) specs, resulting in two different sequences known in some circles as "DEC" and "SCO":
+        the ANSI (or subsequent) specs, resulting in two different sequences known in some circles as "DEC" and "SCO":\n
             DEC: ESC7 (save) and ESC8 (restore)
             SCO: ESC[s (save) and ESC[u (restore)
 
         Different terminals (and OSes) support different combinations of these sequences (one, the other, neither or both);
         for example the iTerm2 terminal on macOS supports both, while the built-in macOS Terminal.app only supports the DEC sequences.
 
-        Source:
+        #### Sources:
             https://github.com/fusesource/jansi/issues/226
             https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797#:~:text=saved%20position%20(SCO)-,Note,-%3A%20Some%20sequences
 
@@ -241,7 +266,7 @@ class Cursor:
         """
         Restores the current cursor position, which was previously saved with save_pos.
 
-        ### Note:
+        #### Note:
         The escape sequences for "save cursor position" and "restore cursor position" were never standardised as part of
         the ANSI (or subsequent) specs, resulting in two different sequences known in some circles as "DEC" and "SCO":\n
             DEC: ESC7 (save) and ESC8 (restore)
@@ -250,7 +275,7 @@ class Cursor:
         Different terminals (and OSes) support different combinations of these sequences (one, the other, neither or both);
         for example the iTerm2 terminal on macOS supports both, while the built-in macOS Terminal.app only supports the DEC sequences.
 
-        Source:
+        #### Sources:
             https://github.com/fusesource/jansi/issues/226
             https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797#:~:text=saved%20position%20(SCO)-,Note,-%3A%20Some%20sequences
 
@@ -264,15 +289,15 @@ class Cursor:
 
 
 @final
-class Erase:
+class Erase(metaclass=_ImmutableMeta):
     """Erase codes."""
 
-    CURSOR_TO_END = f"{_ESCAPE}[0J"
-    CURSOR_TO_ENDL = f"{_ESCAPE}[0K"
-    START_TO_CURSOR = f"{_ESCAPE}[1K"
-    START_TO_END = f"{_ESCAPE}[1J"
-    SCREEN = f"{_ESCAPE}[2J"
-    LINE = f"{_ESCAPE}[2K"
+    CURSOR_TO_END: Final = f"{_ESCAPE}[0J"
+    CURSOR_TO_ENDL: Final = f"{_ESCAPE}[0K"
+    START_TO_CURSOR: Final = f"{_ESCAPE}[1K"
+    START_TO_END: Final = f"{_ESCAPE}[1J"
+    SCREEN: Final = f"{_ESCAPE}[2J"
+    LINE: Final = f"{_ESCAPE}[2K"
 
     @staticmethod
     def lines(count: int = 1, /) -> list[str]:

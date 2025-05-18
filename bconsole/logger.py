@@ -1,11 +1,13 @@
 import traceback
 from datetime import datetime
-from enum import Enum, auto
+from enum import Enum
 from pathlib import Path
 from sys import stderr, stdout
-from typing import Literal, Self, TextIO, final, override
+from typing import Final, Literal, Self, TextIO, override
 
 from .core import Foreground, Modifier
+
+__all__ = ["LogLevel", "LogLevelLike", "Logger", "ColoredLogger"]
 
 """Type alias for a log level or a string representing a log level."""
 type LogLevelLike = (
@@ -16,12 +18,12 @@ type LogLevelLike = (
 class LogLevel(Enum):
     """Logging levels."""
 
-    Verbose = 0
-    Debug = auto()
-    Info = auto()
-    Warning = auto()
-    Error = auto()
-    Critical = auto()
+    Verbose = "verbose"
+    Debug = "debug"
+    Info = "info"
+    Warning = "warning"
+    Error = "error"
+    Critical = "critical"
 
     @classmethod
     def ensure(cls, level: LogLevelLike) -> Self:
@@ -153,11 +155,10 @@ class Logger:
         return f"[{LogLevel.ensure(level).name}] {message}"
 
 
-@final
 class ColoredLogger(Logger):
     """An example of how to override the Logger class to provide colored logging with timestamps and stack information."""
 
-    _color_mapping = {
+    _color_mapping: Final = {
         LogLevel.Verbose: Foreground.CYAN,
         LogLevel.Debug: Foreground.GREEN,
         LogLevel.Info: Foreground.WHITE,
@@ -166,7 +167,7 @@ class ColoredLogger(Logger):
         LogLevel.Critical: Foreground.RED,
     }
 
-    _modifier_mapping = {
+    _modifier_mapping: Final = {
         LogLevel.Verbose: Modifier.ITALIC,
         LogLevel.Debug: Modifier.ITALIC,
         LogLevel.Info: Modifier.NONE,
@@ -178,15 +179,14 @@ class ColoredLogger(Logger):
     @override
     def _format(self, message: str, level: LogLevelLike = LogLevel.Info, /) -> str:
         frame = traceback.extract_stack(limit=5)[0]
-        path = Path(frame.filename or "")
 
         level = LogLevel.ensure(level)
-        dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        file = path.stem + path.suffix
+        dt = datetime.now().strftime("%Y-%m-%d｜%H:%M:%S")
+        file = Path(frame.filename or "").stem
         loc = frame.lineno or 0
 
         return (
-            f"{Foreground.CYAN}({dt}){Foreground.WHITE} "
-            f"{Foreground.YELLOW}[{file} @ {loc}]{Foreground.WHITE} "
+            f"{Foreground.CYAN}({dt}){Modifier.RESET} "
+            f"{Foreground.YELLOW}[{file}@L{loc}]{Modifier.RESET} "
             f"{self._modifier_mapping[level]}{self._color_mapping[level]}{super()._format(message, level)}{Modifier.RESET}"
         )

@@ -12,6 +12,9 @@ from .core import (
     Foreground,
     Modifier,
 )
+from .utils import replace_last, surround_with
+
+__all__ = ["Console"]
 
 
 class Console:
@@ -174,7 +177,9 @@ class Console:
 
         formatted_options = self._format_items(
             *[
-                self._surround(option, wrapper, title=title) if format else option
+                surround_with(option.title() if title else option, wrapper=wrapper)
+                if format
+                else option
                 for option in options
             ]
         )
@@ -290,52 +295,4 @@ class Console:
             >>> console._format_items("apple", "banana", "cherry")
             "apple, banana or cherry"
         """
-        return self._reverse_replace(sep.join(map(str, items)), sep, final_sep)
-
-    def _surround(self, text: str, wrapper: str, /, *, title: bool = True) -> str:
-        """
-        Surrounds the specified text with the specified wrapper.
-
-        ### Args:
-            text (str): The text to surround.
-            wrapper (str): The wrapper to use.
-            title (bool, optional): Whether to make the first character in the text uppercase. Defaults to True.
-
-        ### Returns:
-            str: The surrounded text.
-        """
-        w1, w2 = self._half_str(wrapper)
-        return f"{w1}{text.title() if title else text}{w2}"
-
-    def _half_str(self, text: str, /, *, at: float = 0.5) -> tuple[str, str]:
-        """
-        Halves the specified text at the specified position.
-
-        ### Args:
-            text (str): The text to cut.
-            at (float, optional): The position to cut at. Defaults to 0.5.
-
-        ### Returns:
-            tuple[str, str]: Each half of the text.
-        """
-        where = round(len(text) * at)
-        return (text[:where], text[where:])
-
-    def _reverse_replace(self, text: str, old: str, new: str, /) -> str:
-        """
-        Replaces a single occurrence of a substring in a string with another substring, starting from the end of the string.\n
-        Specifically used to replace the last separator in `_format_items` with the final separator.
-
-        ### Args:
-            text (str): The text to replace in.
-            old (str): The substring to replace.
-            new (str): The substring to replace it with.
-
-        ### Returns:
-            str: The replaced text.
-
-        ### Example:
-            >>> console._reverse_replace("apple, banana or cherry", " or ", ", ")
-            "apple, banana, cherry"
-        """
-        return new.join(text.rsplit(old, 1))
+        return replace_last(sep.join(map(str, items)), sep, final_sep)
