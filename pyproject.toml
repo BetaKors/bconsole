@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bconsole"
-version = "0.0.5"
+version = "0.0.6"
 description = "A simple module to make it a little less painful to make console applications."
 authors = ["BetaKors"]
 readme = "README.md"
