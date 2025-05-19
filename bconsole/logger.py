@@ -69,15 +69,6 @@ class Logger:
         if flush:
             file.flush()
 
-    def info(self, message: str) -> None:
-        """
-        Logs a message with LogLevel.INFO to the console.
-
-        ### Args:
-            message (str): The message to log.
-        """
-        self.log(message, LogLevel.Info)
-
     def verbose(self, message: str) -> None:
         """
         Logs a message with LogLevel.VERBOSE to the console.
@@ -96,32 +87,41 @@ class Logger:
         """
         self.log(message, LogLevel.Debug)
 
-    def warning(self, message: str) -> None:
+    def info(self, message: str) -> None:
+        """
+        Logs a message with LogLevel.INFO to the console.
+
+        ### Args:
+            message (str): The message to log.
+        """
+        self.log(message, LogLevel.Info)
+
+    def warning(self, message: Warning | str) -> None:
         """
         Logs a message with LogLevel.WARNING to the console.
 
         ### Args:
             message (str): The message to log.
         """
-        self.log(message, LogLevel.Warning)
+        self.log(str(message), LogLevel.Warning)
 
-    def error(self, message: str) -> None:
+    def error(self, message: Exception | str) -> None:
         """
         Logs a message with LogLevel.ERROR to the console.
 
         ### Args:
-            message (str): The message to log.
+            message (Exception | str): The message or exception to log.
         """
-        self.log(message, LogLevel.Error)
+        self.log(str(message), LogLevel.Error)
 
-    def critical(self, message: str) -> None:
+    def critical(self, message: Exception | str) -> None:
         """
         Logs a message with LogLevel.CRITICAL to the console.
 
         ### Args:
-            message (str): The message to log.
+            message (Exception | str): The message or exception to log.
         """
-        self.log(message, LogLevel.Critical)
+        self.log(str(message), LogLevel.Critical)
 
     def _get_file(self, level: LogLevelLike = LogLevel.Info, /) -> TextIO:
         """
