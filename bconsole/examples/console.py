@@ -11,6 +11,8 @@ name = console.input("What is your name?")
 
 console.print(f"Hello, {name}!", Foreground.make(31))  # same as Foreground.RED
 
+console.space()
+
 console.options("Do you like the color red?")  # defaults to Yes/No
 console.options("Which animal do you prefer, cats or dogs?", options=["cats", "dogs"])
 

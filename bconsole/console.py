@@ -72,7 +72,7 @@ class Console:
         self.panic_color: str = kwargs.get(
             "panic_color", Foreground.RED + Modifier.BOLD
         )
-        self.arrow_ = kwargs.get("arrow", ">>")
+        self.arrow_ = kwargs.get("arrow", ">> ")
 
     def print(
         self,
@@ -260,6 +260,15 @@ class Console:
         """
         self.input(text, ensure_not_empty=False, is_password=True)
         self.erase_lines(2)
+
+    def space(self, count: int = 1, /) -> None:
+        """
+        Skips the specified number of lines.
+
+        ### Args:
+            count (int, optional): The number of lines to skip. Defaults to 1.
+        """
+        self.print("\n" * count, end="")
 
     def erase_lines(self, count: int = 1, /) -> None:
         """
