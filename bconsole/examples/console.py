@@ -13,8 +13,22 @@ console.print(f"Hello, {name}!", Foreground.make(31))  # same as Foreground.RED
 
 console.space()
 
-console.options("Do you like the color red?")  # defaults to Yes/No
-console.options("Which animal do you prefer, cats or dogs?", options=["cats", "dogs"])
+print(console.options("Do you like the color red?"))
+
+if console.options("Do you like the color red?") == "Yes":  # defaults to Yes/No
+    console.print("Me too!")
+else:
+    console.print("Well, I do!")
+
+if (
+    console.options(
+        "Which animal do you prefer, cats or dogs?", options=["cats", "dogs"]
+    )
+    == "cats"
+):
+    console.print("Meow!")
+else:
+    console.print("Woof!")
 
 for i in range(3):
     console.print(f"This is line number {i + 1}.")

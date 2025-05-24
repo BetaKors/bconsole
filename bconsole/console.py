@@ -12,7 +12,7 @@ from .core import (
     Foreground,
     Modifier,
 )
-from .utils import replace_last, surround_with
+from .utils import first, replace_last, surround_with
 
 __all__ = ["Console"]
 
@@ -168,12 +168,12 @@ class Console:
             format (bool, optional): Whether to the two formatting options described above. Defaults to True.
 
         ### Returns:
-            str: The user's selection.
+            str: The user's selection. Always formatted in the same way as it is in the list of options.
         """
         options = options or ["Yes", "No"]
         wrapper = wrapper or ""
 
-        simplified_options = list(map(lambda o: unidecode(o).lower(), options))
+        simplified_options = {unidecode(option).lower(): option for option in options}
 
         formatted_options = self._format_items(
             *[
@@ -187,14 +187,19 @@ class Console:
         while True:
             chosen = unidecode(self.input(f"{prompt} {formatted_options}.")).lower()
 
-            filtered = [
-                option for option in simplified_options if option.startswith(chosen)
-            ]
+            possible_option = first(
+                filter(
+                    lambda option: option.startswith(chosen),
+                    simplified_options.keys(),
+                ),
+                None,
+            )
 
-            if len(filtered) == 1:
+            if possible_option:
+                original_option = simplified_options[possible_option]
                 self.erase_lines()
-                self.arrow(f"Chosen option: {filtered[0]}", Foreground.MAGENTA)
-                return chosen
+                self.arrow(f"Chosen option: {original_option}", Foreground.MAGENTA)
+                return original_option
 
             self.error(
                 "Invalid option.",

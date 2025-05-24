@@ -1,6 +1,9 @@
 __all__ = ["surround_with", "halve_at", "replace_last"]
 
 
+from typing import Iterable
+
+
 def surround_with(text: str, /, *, wrapper: str) -> str:
     """
     Surrounds the specified text with the specified wrapper.
@@ -49,3 +52,17 @@ def replace_last(text: str, old: str, new: str, /) -> str:
         "apple, banana, cherry"
     """
     return new.join(text.rsplit(old, 1))
+
+
+def first[T](iterable: Iterable[T], /, default: T | None = None) -> T | None:
+    """
+    Returns the first element of an iterable, or the specified default value if the iterable is empty.
+
+    ### Args:
+        iterable (Iterable[Any]): The iterable to get the first element of.
+        default (Any, optional): The default value to return if the iterable is empty. Defaults to None.
+
+    ### Returns:
+        Any: The first element of the iterable, or the default value if the iterable is empty.
+    """
+    return next(iter(iterable), default)
