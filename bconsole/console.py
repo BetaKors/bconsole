@@ -156,6 +156,7 @@ class Console:
         wrapper: str | None = "[]",
         title: bool = True,
         format: bool = True,
+        raw: bool = False,
     ) -> str:
         """
         Prompts the user to select an option from a list of options.
@@ -166,9 +167,10 @@ class Console:
             wrapper (str, optional): The wrapper to use around the options. Defaults to "[]". Example: "[x] or [y]". Can also be None or empty. Example: "x or y".
             title (bool, optional): Whether to make the first character in every option uppercase. Defaults to True.
             format (bool, optional): Whether to the two formatting options described above. Defaults to True.
+            raw (bool, optional): Whether to return the user's input directly as opposed to the option selected from the options list. Defaults to False.
 
         ### Returns:
-            str: The user's selection. Always formatted in the same way as it is in the list of options.
+            str: The user's selection. Selected from the options list if raw is False, otherwise the user's input directly.
         """
         options = options or ["Yes", "No"]
         wrapper = wrapper or ""
@@ -199,7 +201,7 @@ class Console:
                 original_option = simplified_options[possible_option]
                 self.erase_lines()
                 self.arrow(f"Chosen option: {original_option}", Foreground.MAGENTA)
-                return original_option
+                return chosen if raw else original_option
 
             self.error(
                 "Invalid option.",
