@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import partial
 from getpass import getpass
 from os import system as execute
 from sys import stdin, stdout
@@ -101,12 +102,13 @@ class Console:
 
     def input(
         self,
-        prompt: str,
+        prompt: str | None = None,
         /,
         *,
         invalid_values: list[str] | None = None,
         ensure_not_empty: bool = True,
         is_password: bool = False,
+        allow_extras: bool = False,
     ) -> str:
         """
         Prompts the user for input with the specified prompt.
@@ -116,12 +118,14 @@ class Console:
             invalid_values (list[str], optional): A list of invalid values. Defaults to None.
             ensure_not_empty (bool, optional): Whether to ensure the input is not empty. Defaults to True.
             is_password (bool, optional): Whether to hide the input. Defaults to False.
+            allow_extras (bool, optional): Whether to allow extras, such as typing "clear" to clear the console, and "exit" to exit the program. Defaults to False.
 
         ### Returns:
             str: The user's input.
         """
-        self.print(prompt, self.prompt_color)
-        self.arrow(flush=True)
+        if prompt:
+            self.print(prompt, self.prompt_color)
+            self.arrow(flush=True)
 
         if is_password:
             res = getpass("")
@@ -135,15 +139,24 @@ class Console:
         if ensure_not_empty:
             invalid_values.append("")
 
+        recur = partial(
+            self.input,
+            prompt,
+            invalid_values=invalid_values,
+            ensure_not_empty=ensure_not_empty,
+            is_password=is_password,
+            allow_extras=allow_extras,
+        )
+
         match res:
-            case "cls" | "clear":
+            case "cls" | "clear" if allow_extras:
                 self.clear()
-                return self.input(prompt)
-            case "exit":
+                return recur()
+            case "exit" | "quit" if allow_extras:
                 exit(0)
             case res if res in invalid_values:
                 self.error("Invalid value. Try again.")
-                return self.input(prompt, invalid_values=invalid_values)
+                return recur()
             case _:
                 return res
 
