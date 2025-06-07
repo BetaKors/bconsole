@@ -169,6 +169,7 @@ class Console:
         style: Literal["raw", "option", "simplified"] = "option",
         wrapper: str | None = "[]",
         end: str | None = "?",
+        choice_end: str | None = ".",
     ) -> str:
         """
         Prompts the user to select an option from a list of options.
@@ -180,6 +181,7 @@ class Console:
             style (Literal["raw", "option", "simplified"], optional): The style to use for the options. Defaults to "option". Can be "raw", "option", or "simplified". "raw" returns the raw user input, "option" returns the option selected from the options list, and "simplified" returns the first character of the option selected from the options list.
             wrapper (str, optional): The wrapper to use around the options. Defaults to "[]". Example: "[x] or [y]". Can also be None or empty. Example: "x or y".
             end (str, optional): The end to use. Defaults to "?".
+            choice_end (str, optional): The end to use after the chosen option. Defaults to ".".
 
         ### Examples:
             >>> console.options("Do you wish to continue?")
@@ -233,7 +235,7 @@ class Console:
 
                 self.erase_lines()
                 self.arrow(
-                    f"Chosen option: {Modifier.RESET}{chosen_option}",
+                    f"Chosen option: {Modifier.RESET}{chosen_option}{choice_end or ''}",
                     Foreground.MAGENTA,
                 )
 
