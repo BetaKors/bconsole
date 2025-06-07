@@ -13,8 +13,6 @@ console.print(f"Hello, {name}!", Foreground.make(31))  # same as Foreground.RED
 
 console.space()
 
-print(console.options("Do you like the color red?"))
-
 if console.options("Do you like the color red?") == "Yes":  # defaults to Yes/No
     console.print("Me too!")
 else:
@@ -22,9 +20,13 @@ else:
 
 if (
     console.options(
-        "Which animal do you prefer, cats or dogs?", options=["cats", "dogs"]
+        "Which animal do you prefer?",
+        options=["cats", "dogs"],
+        title=False,
+        wrapper=None,
+        style="simplified",
     )
-    == "cats"
+    == "c"  # style "simplified" returns just the first character of the selected option lowercased
 ):
     console.print("Meow!")
 else:

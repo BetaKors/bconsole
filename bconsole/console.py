@@ -4,7 +4,7 @@ from functools import partial
 from getpass import getpass
 from os import system as execute
 from sys import stdin, stdout
-from typing import Any, NoReturn, TextIO, overload
+from typing import Any, Literal, NoReturn, TextIO, overload
 
 from unidecode import unidecode
 
@@ -93,9 +93,7 @@ class Console:
             end (str, optional): The end to use. Defaults to "\n".
             flush (bool, optional): Whether to flush the output. Defaults to False.
         """
-        self.file_out.write(
-            f"{color}{str(text)}{Modifier.RESET}" + end,
-        )
+        self.file_out.write(self.colorize(text, color) + end)
 
         if flush:
             self.file_out.flush()
@@ -154,7 +152,7 @@ class Console:
                 return recur()
             case "exit" | "quit" if allow_extras:
                 exit(0)
-            case res if res in invalid_values:
+            case _ if res in invalid_values:
                 self.error("Invalid value. Try again.")
                 return recur()
             case _:
@@ -164,12 +162,13 @@ class Console:
         self,
         prompt: str,
         /,
-        *,
         options: list[str] | None = None,
-        wrapper: str | None = "[]",
+        *,
+        prompt_only: bool = False,
         title: bool = True,
-        format: bool = True,
-        raw: bool = False,
+        style: Literal["raw", "option", "simplified"] = "option",
+        wrapper: str | None = "[]",
+        end: str | None = "?",
     ) -> str:
         """
         Prompts the user to select an option from a list of options.
@@ -177,13 +176,28 @@ class Console:
         ### Args:
             prompt (str): The prompt to display.
             options (list[str], optional): A list of options. Defaults to ["Yes", "No"].
-            wrapper (str, optional): The wrapper to use around the options. Defaults to "[]". Example: "[x] or [y]". Can also be None or empty. Example: "x or y".
             title (bool, optional): Whether to make the first character in every option uppercase. Defaults to True.
-            format (bool, optional): Whether to the two formatting options described above. Defaults to True.
-            raw (bool, optional): Whether to return the user's input directly as opposed to the option selected from the options list. Defaults to False.
+            style (Literal["raw", "option", "simplified"], optional): The style to use for the options. Defaults to "option". Can be "raw", "option", or "simplified". "raw" returns the raw user input, "option" returns the option selected from the options list, and "simplified" returns the first character of the option selected from the options list.
+            wrapper (str, optional): The wrapper to use around the options. Defaults to "[]". Example: "[x] or [y]". Can also be None or empty. Example: "x or y".
+            end (str, optional): The end to use. Defaults to "?".
+
+        ### Examples:
+            >>> console.options("Do you wish to continue?")
+            Do you wish to continue? [Yes] or [No]?
+            >>
+            >>> console.options("Do you wish to continue?", prompt_only=True)  # doesn't show the options list
+            Do you wish to continue?
+            >>
+            >>> console.options("Are you sure about that?", options=["yes", "no", "maybe"], title=False, wrapper=None, end='???')
+            Are you sure about that? yes, no or maybe???
+            >>
+            >>> console.options("Are you sure about that?", style="simplified") == "y"
+            Are you sure about that? [Yes] or [No]?
+            >> Yes  # results in console.options returning just "y"
+            True
 
         ### Returns:
-            str: The user's selection. Selected from the options list if raw is False, otherwise the user's input directly.
+            str: The user's selection. Selected from the options list if raw is False, otherwise returns the user's input directly.
         """
         options = options or ["Yes", "No"]
         wrapper = wrapper or ""
@@ -193,55 +207,73 @@ class Console:
         formatted_options = self._format_items(
             *[
                 surround_with(option.title() if title else option, wrapper=wrapper)
-                if format
-                else option
                 for option in options
             ]
         )
 
         while True:
-            chosen = unidecode(self.input(f"{prompt} {formatted_options}.")).lower()
+            raw = unidecode(
+                self.input(
+                    prompt
+                    if prompt_only
+                    else f"{prompt} {formatted_options}{end or ''}"
+                )
+            ).lower()
 
             possible_option = first(
                 filter(
-                    lambda option: option.startswith(chosen),
+                    lambda option: option.startswith(raw),
                     simplified_options.keys(),
                 ),
                 None,
             )
 
             if possible_option:
-                original_option = simplified_options[possible_option]
+                chosen_option = simplified_options[possible_option]
+
                 self.erase_lines()
-                self.arrow(f"Chosen option: {original_option}", Foreground.MAGENTA)
-                return chosen if raw else original_option
+                self.arrow(
+                    f"Chosen option: {Modifier.RESET}{chosen_option}",
+                    Foreground.MAGENTA,
+                )
+
+                if style == "raw":
+                    return raw
+                elif style == "option":
+                    return chosen_option
+                else:
+                    return chosen_option.lower()[0]
 
             self.error(
                 "Invalid option.",
                 hint=f"Choose one among the following options: {formatted_options}.",
             )
 
-    def error(self, error: Exception | str, /, *, hint: str = "") -> None:
+    def error(
+        self, error: Exception | str, /, *, hint: str = "", same_line: bool = True
+    ) -> None:
         """
         Prints an error message to the console.
 
         ### Args:
             error (Exception | str): The error to print.
             hint (str, optional): A hint to display. Defaults to "".
+            same_line (bool, optional): Whether to print the hint on the same line as the error. Defaults to True.
         """
-        self.print(error, self.error_color)
-        _ = hint and self.print(hint, self.hint_color)
+        self.print(error, self.error_color, end=" " if same_line else "\n")
 
-    def panic(self, error: str, /, *, hint: str = "", code: int = -1) -> NoReturn:
+        if hint:
+            self.print(hint, self.hint_color)
+
+    def panic(self, reason: Exception | str, /, *, code: int = -1) -> NoReturn:
         """
         Prints an error message to the console and exits the program with the specified code.
 
         ### Args:
-            error (str): The error to print.
-            hint (str, optional): A hint to display. Defaults to "".
+            error (Exception | str): The error to print.
             code (int, optional): The exit code. Defaults to -1.
         """
-        self.error(error, hint=hint)
+        self.print(reason, self.panic_color)
         self.enter_to_continue()
         exit(code)
 
@@ -257,7 +289,9 @@ class Console:
             flush (bool, optional): Whether to flush the output. Defaults to False.
         """
         self.print(self.arrow_, self.arrow_color, end="", flush=flush)
-        _ = text and self.print(text, color)
+
+        if text:
+            self.print(text, color)
 
     def actions(self, *args: str) -> None:
         """
@@ -271,14 +305,18 @@ class Console:
         """
         self.print("\n".join(args), end="")
 
-    def enter_to_continue(self, text: str = "Press enter to continue...") -> None:
+    def enter_to_continue(
+        self, text: str = "Press enter to continue...", color: str | None = None
+    ) -> None:
         """
         Prompts the user to press enter to continue.
 
         ### Args:
             text (str, optional): The text to display. Defaults to "Press enter to continue...".
+            color (str, optional): The color to use. Defaults to `prompt_color`.
         """
-        self.input(text, ensure_not_empty=False, is_password=True)
+        self.print(text, color or self.prompt_color, end="", flush=True)
+        getpass("")
         self.erase_lines(2)
 
     def space(self, count: int = 1, /) -> None:
@@ -302,6 +340,19 @@ class Console:
     def clear(self) -> None:
         """Clears the console."""
         execute("cls||clear")
+
+    def colorize(self, text: Any, color: str, /) -> str:
+        """
+        Helper method to colorize text.
+
+        ### Args:
+            text (str): The text to colorize.
+            color (str): The color to use.
+
+        ### Returns:
+            str: The colorized text. Simply COLOR + TEXT + RESET.
+        """
+        return f"{color}{str(text)}{Modifier.RESET}"
 
     def _format_items(
         self,
