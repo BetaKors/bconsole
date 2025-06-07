@@ -1,4 +1,4 @@
-# BConsole
+# bconsole
 
 A logging library that also provides helper classes and functions to easily add color and manipulate the terminal.
 
