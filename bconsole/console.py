@@ -4,7 +4,7 @@ from functools import partial
 from getpass import getpass
 from os import system as execute
 from sys import stdin, stdout
-from typing import Any, Literal, NoReturn, TextIO, overload
+from typing import Any, Iterable, Literal, NoReturn, TextIO, overload
 
 from unidecode import unidecode
 
@@ -13,7 +13,7 @@ from .core import (
     Foreground,
     Modifier,
 )
-from .utils import first, replace_last, surround_with
+from .utils import find_closest_match, first, replace_last, surround_with
 
 __all__ = ["Console"]
 
@@ -153,7 +153,7 @@ class Console:
             case "exit" | "quit" if allow_extras:
                 exit(0)
             case _ if res in invalid_values:
-                self.error("Invalid value. Try again.")
+                self.error("Invalid value.", hint="Try again.")
                 return recur()
             case _:
                 return res
@@ -164,11 +164,11 @@ class Console:
         /,
         options: list[str] | None = None,
         *,
-        prompt_only: bool = False,
-        title: bool = True,
-        style: Literal["raw", "option", "simplified"] = "option",
-        wrapper: str | None = "[]",
-        end: str | None = "?",
+        show_options: bool = True,
+        allow_suggestions: bool = True,
+        return_style: Literal["raw", "option", "simplified"] = "option",
+        option_wrapper: str | None = "[]",
+        options_end: str | None = "?",
         choice_end: str | None = ".",
     ) -> str:
         """
@@ -177,23 +177,24 @@ class Console:
         ### Args:
             prompt (str): The prompt to display.
             options (list[str], optional): A list of options. Defaults to ["Yes", "No"].
-            title (bool, optional): Whether to make the first character in every option uppercase. Defaults to True.
-            style (Literal["raw", "option", "simplified"], optional): The style to use for the options. Defaults to "option". Can be "raw", "option", or "simplified". "raw" returns the raw user input, "option" returns the option selected from the options list, and "simplified" returns the first character of the option selected from the options list.
-            wrapper (str, optional): The wrapper to use around the options. Defaults to "[]". Example: "[x] or [y]". Can also be None or empty. Example: "x or y".
-            end (str, optional): The end to use. Defaults to "?".
+            show_options (bool, optional): Whether to show the options list. Defaults to True.
+            allow_suggestions (bool, optional): Whether to show suggestions for the user when they make an invalid selection. Defaults to True.
+            return_style (Literal["raw", "option", "simplified"], optional): The returning style to use for the selected option. Defaults to "option". Can be "raw", "option", or "simplified". "raw" returns the raw user input, "option" returns the option selected from the options list, and "simplified" returns the first character of the option selected from the options list.
+            options_wrapper (str, optional): The wrapper to use around each of the options. Defaults to "[]". Example: "[x] or [y]". Can also be None or empty. Example: "x or y".
+            options_end (str, optional): The end to use after the options list. Defaults to "?".
             choice_end (str, optional): The end to use after the chosen option. Defaults to ".".
 
         ### Examples:
             >>> console.options("Do you wish to continue?")
             Do you wish to continue? [Yes] or [No]?
             >>
-            >>> console.options("Do you wish to continue?", prompt_only=True)  # doesn't show the options list
+            >>> console.options("Do you wish to continue?", show_options=True)  # doesn't show the options list
             Do you wish to continue?
             >>
-            >>> console.options("Are you sure about that?", options=["yes", "no", "maybe"], title=False, wrapper=None, end='???')
+            >>> console.options("Are you sure about that?", options=["yes", "no", "maybe"], wrapper=None, end='???')
             Are you sure about that? yes, no or maybe???
             >>
-            >>> console.options("Are you sure about that?", style="simplified") == "y"
+            >>> console.options("Are you sure about that?", return_style="simplified") == "y"
             Are you sure about that? [Yes] or [No]?
             >> Yes  # results in console.options returning just "y"
             True
@@ -202,32 +203,30 @@ class Console:
             str: The user's selection. Selected from the options list if raw is False, otherwise returns the user's input directly.
         """
         options = options or ["Yes", "No"]
-        wrapper = wrapper or ""
+        option_wrapper = option_wrapper or ""
 
-        simplified_options = {unidecode(option).lower(): option for option in options}
+        simplified_options = {
+            unidecode(option).casefold().strip(): option.strip() for option in options
+        }
 
         formatted_options = self._format_items(
-            *[
-                surround_with(option.title() if title else option, wrapper=wrapper)
-                for option in options
-            ]
+            surround_with(option, wrapper=option_wrapper) for option in options
         )
 
         while True:
-            raw = unidecode(
-                self.input(
-                    prompt
-                    if prompt_only
-                    else f"{prompt} {formatted_options}{end or ''}"
-                )
-            ).lower()
+            raw = self.input(
+                f"{prompt} {formatted_options}{options_end or ''}"
+                if show_options
+                else prompt
+            )
+
+            proper = unidecode(raw).casefold().strip()
 
             possible_option = first(
                 filter(
-                    lambda option: option.startswith(raw),
+                    lambda option: option.startswith(proper),
                     simplified_options.keys(),
-                ),
-                None,
+                )
             )
 
             if possible_option:
@@ -239,16 +238,23 @@ class Console:
                     Foreground.MAGENTA,
                 )
 
-                if style == "raw":
-                    return raw
-                elif style == "option":
-                    return chosen_option
-                else:
-                    return chosen_option.lower()[0]
+                match return_style:
+                    case "raw":
+                        return raw
+                    case "option":
+                        return chosen_option
+                    case "simplified":
+                        return chosen_option.lower()[0]
+
+            closest = (
+                find_closest_match(proper, simplified_options.keys())
+                if allow_suggestions
+                else None
+            )
 
             self.error(
                 "Invalid option.",
-                hint=f"Choose one among the following options: {formatted_options}.",
+                hint=f"{f'Did you mean {closest}? ' if closest else ''}Choose one among the following options: {formatted_options}.",
             )
 
     def error(
@@ -358,7 +364,7 @@ class Console:
 
     def _format_items(
         self,
-        *items: Any,
+        items: Iterable[str],
         sep: str = ", ",
         final_sep: str = " or ",
     ) -> str:
@@ -366,7 +372,7 @@ class Console:
         Formats a list of items into a string with the specified separator and final separator.
 
         ### Args:
-            *items (Any): The items to format.
+            items (list[str]): The items to format.
             sep (str, optional): The separator to use. Defaults to ", ".
             final_sep (str, optional): The final separator to use. Defaults to " or ".
 
@@ -377,4 +383,4 @@ class Console:
             >>> console._format_items("apple", "banana", "cherry")
             "apple, banana or cherry"
         """
-        return replace_last(sep.join(map(str, items)), sep, final_sep)
+        return replace_last(sep.join(items), sep, final_sep)

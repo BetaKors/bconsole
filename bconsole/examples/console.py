@@ -22,9 +22,8 @@ if (
     console.options(
         "Which animal do you prefer?",
         options=["cats", "dogs"],
-        title=False,
-        wrapper=None,
-        style="simplified",
+        option_wrapper=None,
+        return_style="simplified",
     )
     == "c"  # style "simplified" returns just the first character of the selected option lowercased
 ):

@@ -1,7 +1,8 @@
 __all__ = ["surround_with", "halve_at", "replace_last"]
 
 
-from typing import Iterable
+from difflib import SequenceMatcher
+from typing import Iterable, overload
 
 
 def surround_with(text: str, /, *, wrapper: str) -> str:
@@ -54,6 +55,14 @@ def replace_last(text: str, old: str, new: str, /) -> str:
     return new.join(text.rsplit(old, 1))
 
 
+@overload
+def first[T](iterable: Iterable[T], /, default: T) -> T: ...
+
+
+@overload
+def first[T](iterable: Iterable[T], /, default: T | None = None) -> T | None: ...
+
+
 def first[T](iterable: Iterable[T], /, default: T | None = None) -> T | None:
     """
     Returns the first element of an iterable, or the specified default value if the iterable is empty.
@@ -66,3 +75,15 @@ def first[T](iterable: Iterable[T], /, default: T | None = None) -> T | None:
         Any: The first element of the iterable, or the default value if the iterable is empty.
     """
     return next(iter(iterable), default)
+
+
+def find_closest_match(
+    string: str, target: Iterable[str], /, *, min_match_value: float = 0.2
+) -> str | None:
+    matches = {t: SequenceMatcher(None, string, t).ratio() for t in target}
+    max_value = max(matches.values())
+    return (
+        first(key for key, value in matches.items() if value == max_value)
+        if max_value >= min_match_value
+        else None
+    )
