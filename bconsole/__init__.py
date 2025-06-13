@@ -6,27 +6,23 @@ __version__ = "0.0.13"
 __license__ = "MIT"
 __url__ = "https://github.com/BetaKors/bconsole"
 
+
 from colorama import just_fix_windows_console
 
 from .console import Console
-from .core import (
-    Background,
-    Cursor,
-    Erase,
-    Foreground,
-    Modifier,
-)
-from .logger import ColoredLogger, Logger, LogLevel, LogLevelLike
+from .core import Background, Cursor, Erase, Foreground, Modifier
+from .logger import ColoredFileLogger, ColoredLogger, Logger, LogLevel, LogLevelLike
 
 just_fix_windows_console()
 del just_fix_windows_console
 
 __all__ = [
     "Background",
-    "Console",
     "ColoredLogger",
+    "Console",
     "Cursor",
     "Erase",
+    "ColoredFileLogger",
     "Foreground",
     "Logger",
     "LogLevel",

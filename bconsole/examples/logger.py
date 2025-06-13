@@ -1,6 +1,8 @@
-from bconsole import ColoredLogger
+from datetime import datetime
 
-logger = ColoredLogger()
+from bconsole import ColoredFileLogger
+
+logger = ColoredFileLogger.from_path(f"logs/{datetime.now().strftime('%Y-%m-%d')}.log")
 
 logger.verbose("This is a verbose message.")
 logger.debug("This is a debug message.")
@@ -21,3 +23,5 @@ except Exception as e:
     logger.error(e)
 
 logger.critical("This is a critical message.")
+
+logger.close()

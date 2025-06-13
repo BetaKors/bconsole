@@ -1,19 +1,24 @@
 from __future__ import annotations
 
 from abc import ABC, ABCMeta, abstractmethod
-from os import getenv
 from re import findall as find_all
 from sys import stdin, stdout
 from typing import Any, Final, Literal, NoReturn, TextIO, final, override
 
-_ESCAPE = getenv("BCONSOLE_ESCAPE", "\033")
+__all__ = [
+    "TerminalColor",
+    "Foreground",
+    "Background",
+    "Modifier",
+    "Cursor",
+    "Erase",
+]
 
-
-__all__ = ["TerminalColor", "Foreground", "Background", "Modifier", "Cursor", "Erase"]
+_ESC = "\033"
 
 
 class _ImmutableMeta(type):
-    """Metaclass for immutable classes."""
+    """Metaclass for immutable classes. Does not prevent the addition of new attributes."""
 
     @final
     def __setattr__(cls, name: str, value: Any) -> None:
@@ -62,7 +67,7 @@ class TerminalColor(ABC, metaclass=_ABCImmutableMeta):
         ### Returns:
             str: Escape Code Sequence
         """
-        return f"{_ESCAPE}[{code}m"
+        return f"{_ESC}[{code}m"
 
     @final
     @staticmethod
@@ -84,67 +89,67 @@ class TerminalColor(ABC, metaclass=_ABCImmutableMeta):
 class Foreground(TerminalColor):
     """Foreground colors."""
 
-    BLACK: Final = f"{_ESCAPE}[30m"
-    RED: Final = f"{_ESCAPE}[31m"
-    GREEN: Final = f"{_ESCAPE}[32m"
-    YELLOW: Final = f"{_ESCAPE}[33m"
-    BLUE: Final = f"{_ESCAPE}[34m"
-    MAGENTA: Final = f"{_ESCAPE}[35m"
-    CYAN: Final = f"{_ESCAPE}[36m"
-    WHITE: Final = f"{_ESCAPE}[37m"
+    BLACK: Final = f"{_ESC}[30m"
+    RED: Final = f"{_ESC}[31m"
+    GREEN: Final = f"{_ESC}[32m"
+    YELLOW: Final = f"{_ESC}[33m"
+    BLUE: Final = f"{_ESC}[34m"
+    MAGENTA: Final = f"{_ESC}[35m"
+    CYAN: Final = f"{_ESC}[36m"
+    WHITE: Final = f"{_ESC}[37m"
 
     @override
     @staticmethod
     def make_rgb(r: int, g: int, b: int, /) -> str:
-        return f"{_ESCAPE}[38;2;{r};{g};{b}m"
+        return f"{_ESC}[38;2;{r};{g};{b}m"
 
 
 @final
 class Background(TerminalColor):
     """Background colors."""
 
-    BLACK: Final = f"{_ESCAPE}[40m"
-    RED: Final = f"{_ESCAPE}[41m"
-    GREEN: Final = f"{_ESCAPE}[42m"
-    YELLOW: Final = f"{_ESCAPE}[43m"
-    BLUE: Final = f"{_ESCAPE}[44m"
-    MAGENTA: Final = f"{_ESCAPE}[45m"
-    CYAN: Final = f"{_ESCAPE}[46m"
-    WHITE: Final = f"{_ESCAPE}[47m"
+    BLACK: Final = f"{_ESC}[40m"
+    RED: Final = f"{_ESC}[41m"
+    GREEN: Final = f"{_ESC}[42m"
+    YELLOW: Final = f"{_ESC}[43m"
+    BLUE: Final = f"{_ESC}[44m"
+    MAGENTA: Final = f"{_ESC}[45m"
+    CYAN: Final = f"{_ESC}[46m"
+    WHITE: Final = f"{_ESC}[47m"
 
     @override
     @staticmethod
     def make_rgb(r: int, g: int, b: int, /) -> str:
-        return f"{_ESCAPE}[48;2;{r};{g};{b}m"
+        return f"{_ESC}[48;2;{r};{g};{b}m"
 
 
 @final
 class Modifier(metaclass=_ImmutableMeta):
     """Color/Graphics modifiers."""
 
-    NONE: Final = f"{_ESCAPE}[0m"
-    RESET: Final = f"{_ESCAPE}[0m"
-    BOLD: Final = f"{_ESCAPE}[1m"
-    DIM: Final = f"{_ESCAPE}[2m"
-    FAINT: Final = f"{_ESCAPE}[2m"
-    ITALIC: Final = f"{_ESCAPE}[3m"
-    UNDERLINE: Final = f"{_ESCAPE}[4m"
-    BLINK: Final = f"{_ESCAPE}[5m"
-    INVERSE: Final = f"{_ESCAPE}[7m"
-    HIDDEN: Final = f"{_ESCAPE}[8m"
-    INVISIBLE: Final = f"{_ESCAPE}[8m"
-    STRIKETHROUGH: Final = f"{_ESCAPE}[9m"
+    NONE: Final = f"{_ESC}[0m"
+    RESET: Final = f"{_ESC}[0m"
+    BOLD: Final = f"{_ESC}[1m"
+    DIM: Final = f"{_ESC}[2m"
+    FAINT: Final = f"{_ESC}[2m"
+    ITALIC: Final = f"{_ESC}[3m"
+    UNDERLINE: Final = f"{_ESC}[4m"
+    BLINK: Final = f"{_ESC}[5m"
+    INVERSE: Final = f"{_ESC}[7m"
+    HIDDEN: Final = f"{_ESC}[8m"
+    INVISIBLE: Final = f"{_ESC}[8m"
+    STRIKETHROUGH: Final = f"{_ESC}[9m"
 
 
 @final
 class Cursor(metaclass=_ImmutableMeta):
     """Cursor movement codes."""
 
-    HOME: Final = f"{_ESCAPE}[H"
-    UP: Final = f"{_ESCAPE}[1A"
-    DOWN: Final = f"{_ESCAPE}[1B"
-    RIGHT: Final = f"{_ESCAPE}[1C"
-    LEFT: Final = f"{_ESCAPE}[1D"
+    HOME: Final = f"{_ESC}[H"
+    UP: Final = f"{_ESC}[1A"
+    DOWN: Final = f"{_ESC}[1B"
+    RIGHT: Final = f"{_ESC}[1C"
+    LEFT: Final = f"{_ESC}[1D"
 
     @staticmethod
     def get_pos(file_in: TextIO = stdin, file_out: TextIO = stdout) -> tuple[int, int]:
@@ -159,7 +164,7 @@ class Cursor(metaclass=_ImmutableMeta):
         ### Returns:
             tuple[int, int]: The current cursor position.
         """
-        file_out.write(f"{_ESCAPE}[6n")
+        file_out.write(f"{_ESC}[6n")
         file_out.flush()
 
         buf = ""
@@ -181,7 +186,7 @@ class Cursor(metaclass=_ImmutableMeta):
         ### Returns:
             str: Escape Code Sequence
         """
-        return f"{_ESCAPE}[{line};{column}H"
+        return f"{_ESC}[{line};{column}H"
 
     @staticmethod
     def up(lines: int = 1, /) -> str:
@@ -194,7 +199,7 @@ class Cursor(metaclass=_ImmutableMeta):
         ### Returns:
             str: Escape Code Sequence
         """
-        return f"{_ESCAPE}[{lines}1A"
+        return f"{_ESC}[{lines}1A"
 
     @staticmethod
     def down(lines: int = 1, /) -> str:
@@ -207,7 +212,7 @@ class Cursor(metaclass=_ImmutableMeta):
         ### Returns:
             str: Escape Code Sequence
         """
-        return f"{_ESCAPE}[{lines}1B"
+        return f"{_ESC}[{lines}1B"
 
     @staticmethod
     def right(columns: int = 1, /) -> str:
@@ -220,7 +225,7 @@ class Cursor(metaclass=_ImmutableMeta):
         ### Returns:
             str: Escape Code Sequence
         """
-        return f"{_ESCAPE}[{columns}1C"
+        return f"{_ESC}[{columns}1C"
 
     @staticmethod
     def left(columns: int = 1, /) -> str:
@@ -233,7 +238,7 @@ class Cursor(metaclass=_ImmutableMeta):
         ### Returns:
             str: Escape Code Sequence
         """
-        return f"{_ESCAPE}[{columns}1D"
+        return f"{_ESC}[{columns}1D"
 
     @staticmethod
     def save_pos(sequence: Literal["DEC", "SCO"] = "DEC") -> str:
@@ -259,7 +264,7 @@ class Cursor(metaclass=_ImmutableMeta):
         ### Returns:
             str: Escape Code Sequence
         """
-        return f"{_ESCAPE}7" if sequence == "DEC" else f"{_ESCAPE}[s"
+        return f"{_ESC}7" if sequence == "DEC" else f"{_ESC}[s"
 
     @staticmethod
     def restore_pos(sequence: Literal["DEC", "SCO"] = "DEC") -> str:
@@ -285,19 +290,19 @@ class Cursor(metaclass=_ImmutableMeta):
         ### Returns:
             str: Escape Code Sequence
         """
-        return f"{_ESCAPE}8" if sequence == "DEC" else f"{_ESCAPE}[u"
+        return f"{_ESC}8" if sequence == "DEC" else f"{_ESC}[u"
 
 
 @final
 class Erase(metaclass=_ImmutableMeta):
     """Erase codes."""
 
-    CURSOR_TO_END: Final = f"{_ESCAPE}[0J"
-    CURSOR_TO_ENDL: Final = f"{_ESCAPE}[0K"
-    START_TO_CURSOR: Final = f"{_ESCAPE}[1K"
-    START_TO_END: Final = f"{_ESCAPE}[1J"
-    SCREEN: Final = f"{_ESCAPE}[2J"
-    LINE: Final = f"{_ESCAPE}[2K"
+    CURSOR_TO_END: Final = f"{_ESC}[0J"
+    CURSOR_TO_ENDL: Final = f"{_ESC}[0K"
+    START_TO_CURSOR: Final = f"{_ESC}[1K"
+    START_TO_END: Final = f"{_ESC}[1J"
+    SCREEN: Final = f"{_ESC}[2J"
+    LINE: Final = f"{_ESC}[2K"
 
     @staticmethod
     def lines(count: int = 1, /) -> list[str]:

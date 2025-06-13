@@ -321,7 +321,7 @@ class Console:
 
         ### Args:
             text (str, optional): The text to display. Defaults to "Press enter to continue...".
-            color (str, optional): The color to use. Defaults to `prompt_color`.
+            color (str, optional): The color to use. Defaults to `self.prompt_color`.
         """
         self.print(text, color or self.prompt_color, end="", flush=True)
         getpass("")

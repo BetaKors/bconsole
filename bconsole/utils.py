@@ -1,5 +1,8 @@
+import re
 from difflib import SequenceMatcher
 from typing import Iterable
+
+from .core import _ESC  # type: ignore
 
 __all__ = ["surround_with", "halve_at", "replace_last"]
 
@@ -69,7 +72,7 @@ def first[T, U](iterable: Iterable[T], /, default: U = None) -> T | U:
 
 
 def find_closest_match[T](
-    s: str,
+    string: str,
     options: Iterable[str],
     /,
     *,
@@ -77,7 +80,20 @@ def find_closest_match[T](
     default: T = None,
 ) -> str | T:
     match, max_value = max(
-        {o: SequenceMatcher(None, s, o).ratio() for o in options}.items(),
+        {o: SequenceMatcher(None, string, o).ratio() for o in options}.items(),
         key=lambda i: i[1],
     )
     return match if max_value >= min_value else default
+
+
+def clear_ansi(string: str, /) -> str:
+    """
+    Removes all ANSI escape codes from the specified string.
+
+    ### Args:
+        string (str): The string to clear.
+        escape (str, optional): The escape sequence to use. Defaults to `bconsole.core.ESCAPE`.
+    ### Returns:
+        str: The cleared string.
+    """
+    return re.sub(rf"{_ESC}\[[0-9;]*m", "", string)
