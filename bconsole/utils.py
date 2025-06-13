@@ -79,13 +79,13 @@ def first[T](iterable: Iterable[T], /, default: T | None = None) -> T | None:
 
 @overload
 def find_closest_match(
-    test: str, options: Iterable[str], /, *, min_value: float = 0.1, default: str
+    s: str, options: Iterable[str], /, *, min_value: float = 0.1, default: str
 ) -> str: ...
 
 
 @overload
 def find_closest_match(
-    test: str,
+    s: str,
     options: Iterable[str],
     /,
     *,
@@ -95,7 +95,7 @@ def find_closest_match(
 
 
 def find_closest_match(
-    test: str,
+    s: str,
     options: Iterable[str],
     /,
     *,
@@ -103,7 +103,7 @@ def find_closest_match(
     default: str | None = None,
 ) -> str | None:
     match, max_value = max(
-        {t: SequenceMatcher(None, test, t).ratio() for t in options}.items(),
+        {o: SequenceMatcher(None, s, o).ratio() for o in options}.items(),
         key=lambda i: i[1],
     )
     return match if max_value >= min_value else default
