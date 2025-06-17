@@ -4,7 +4,14 @@ from typing import Iterable
 
 from .core import _ESC  # type: ignore
 
-__all__ = ["surround_with", "halve_at", "replace_last"]
+__all__ = [
+    "clear_ansi",
+    "find_closest_match",
+    "first",
+    "halve_at",
+    "replace_last",
+    "surround_with",
+]
 
 
 def surround_with(text: str, /, *, wrapper: str) -> str:
@@ -57,28 +64,42 @@ def replace_last(text: str, old: str, new: str, /) -> str:
     return new.join(text.rsplit(old, 1))
 
 
-def first[T, U](iterable: Iterable[T], /, default: U = None) -> T | U:
+def first[T, TDefault](
+    iterable: Iterable[T], /, default: TDefault = None
+) -> T | TDefault:
     """
     Returns the first element of an iterable, or the specified default value if the iterable is empty.
 
     ### Args:
-        iterable (Iterable[Any]): The iterable to get the first element of.
-        default (Any, optional): The default value to return if the iterable is empty. Defaults to None.
+        iterable (Iterable[T]): The iterable to get the first element of.
+        default (TDefault, optional): The default value to return if the iterable is empty. Defaults to None.
 
     ### Returns:
-        Any: The first element of the iterable, or the default value if the iterable is empty.
+        T | TDefault: The first element of the iterable, or the default value if the iterable is empty.
     """
     return next(iter(iterable), default)
 
 
-def find_closest_match[T](
+def find_closest_match[TDefault](
     string: str,
     options: Iterable[str],
     /,
     *,
-    min_value: float = 0.1,
-    default: T = None,
-) -> str | T:
+    min_value: float = 0.2,
+    default: TDefault = None,
+) -> str | TDefault:
+    """
+    Finds the closest match to the specified string in the specified options, returning the default value if no match is found.
+
+    ### Args:
+        string (str): The string to find a match for.
+        options (Iterable[str]): The options to find a match in.
+        min_value (float, optional): The minimum similarity value to consider a match. Defaults to 0.1.
+        default (TDefault, optional): The default value to return if no match is found. Defaults to None.
+
+    ### Returns:
+        str | TDefault: The closest match to the string, or the default value if no match is found.
+    """
     match, max_value = max(
         {o: SequenceMatcher(None, string, o).ratio() for o in options}.items(),
         key=lambda i: i[1],
@@ -93,6 +114,7 @@ def clear_ansi(string: str, /) -> str:
     ### Args:
         string (str): The string to clear.
         escape (str, optional): The escape sequence to use. Defaults to `bconsole.core.ESCAPE`.
+
     ### Returns:
         str: The cleared string.
     """
