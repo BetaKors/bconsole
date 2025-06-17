@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bconsole"
-version = "0.0.14"
+version = "0.0.15"
 description = "A logging library that provides helper classes and functions to easily add colorize manipulate the terminal."
 authors = ["BetaKors"]
 readme = "README.md"
