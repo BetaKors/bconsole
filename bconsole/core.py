@@ -18,7 +18,7 @@ _ESC = "\033"
 
 
 class _ImmutableMeta(type):
-    """Metaclass for immutable classes. Does not prevent the addition of new attributes."""
+    """Metaclass that makes classes immutable, not their instances. Does not prevent the addition of new attributes."""
 
     @final
     def __setattr__(cls, name: str, value: Any) -> None:
@@ -32,11 +32,24 @@ class _ImmutableMeta(type):
 
 
 class _ABCImmutableMeta(ABCMeta, _ImmutableMeta):
-    """Metaclass for immutable ABCs."""
+    """Metaclass for immutable ABC classes."""
 
 
-class TerminalColor(ABC, metaclass=_ABCImmutableMeta):
+class _Uninitiliazable:
+    """Makes classes uninitializable. Kinda like static classes in other languages!"""
+
+    @final
+    def __new__(cls) -> NoReturn:
+        raise RuntimeError(f"Class {cls.__name__} is uninitializable!")
+
+    @final
+    def __init__(self) -> None: ...
+
+
+class TerminalColor(_Uninitiliazable, ABC, metaclass=_ABCImmutableMeta):
     """Abstract class for terminal colors."""
+
+    RESET: Final = f"{_ESC}[0m"
 
     @staticmethod
     @abstractmethod
@@ -71,7 +84,7 @@ class TerminalColor(ABC, metaclass=_ABCImmutableMeta):
 
     @final
     @staticmethod
-    def colorize(text: str, color: str) -> str:
+    def colorize(text: str, /, color: str) -> str:
         """
         Colorizes the specified text with the specified color.
 
@@ -124,25 +137,25 @@ class Background(TerminalColor):
 
 
 @final
-class Modifier(metaclass=_ImmutableMeta):
+class Modifier(_Uninitiliazable, metaclass=_ImmutableMeta):
     """Color/Graphics modifiers."""
 
-    NONE: Final = f"{_ESC}[0m"
     RESET: Final = f"{_ESC}[0m"
+    NONE: Final = RESET  # alias
     BOLD: Final = f"{_ESC}[1m"
     DIM: Final = f"{_ESC}[2m"
-    FAINT: Final = f"{_ESC}[2m"
+    FAINT: Final = DIM  # alias
     ITALIC: Final = f"{_ESC}[3m"
     UNDERLINE: Final = f"{_ESC}[4m"
     BLINK: Final = f"{_ESC}[5m"
     INVERSE: Final = f"{_ESC}[7m"
     HIDDEN: Final = f"{_ESC}[8m"
-    INVISIBLE: Final = f"{_ESC}[8m"
+    INVISIBLE: Final = HIDDEN  # alias
     STRIKETHROUGH: Final = f"{_ESC}[9m"
 
 
 @final
-class Cursor(metaclass=_ImmutableMeta):
+class Cursor(_Uninitiliazable, metaclass=_ImmutableMeta):
     """Cursor movement codes."""
 
     HOME: Final = f"{_ESC}[H"
@@ -294,25 +307,28 @@ class Cursor(metaclass=_ImmutableMeta):
 
 
 @final
-class Erase(metaclass=_ImmutableMeta):
+class Erase(_Uninitiliazable, metaclass=_ImmutableMeta):
     """Erase codes."""
 
     CURSOR_TO_END: Final = f"{_ESC}[0J"
     CURSOR_TO_ENDL: Final = f"{_ESC}[0K"
+    CURSOR_TO_LINE_END: Final = CURSOR_TO_ENDL  # alias
+    CURSOR_TO_END_OF_LINE: Final = CURSOR_TO_ENDL  # alias
     START_TO_CURSOR: Final = f"{_ESC}[1K"
     START_TO_END: Final = f"{_ESC}[1J"
     SCREEN: Final = f"{_ESC}[2J"
+    ALL: Final = SCREEN  # alias
     LINE: Final = f"{_ESC}[2K"
 
     @staticmethod
-    def lines(count: int = 1, /) -> list[str]:
+    def lines(count: int = 1, /) -> tuple[str, ...]:
         """
-        Returns a list of escape codes to erase the specified number of lines.
+        Returns a tuple of escape codes to erase the specified number of lines.
 
         ### Args:
             count (int, optional): Number of lines to erase. Defaults to 1.
 
         ### Returns:
-            list[str]: List of escape codes.
+            tuple[str]: tuple of escape codes.
         """
-        return [Cursor.UP + Erase.LINE for _ in range(count)]
+        return tuple(Cursor.UP + Erase.LINE for _ in range(count))

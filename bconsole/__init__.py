@@ -6,6 +6,7 @@ __version__ = "0.0.14"
 __license__ = "MIT"
 __url__ = "https://github.com/BetaKors/bconsole"
 
+from typing import Callable
 
 from colorama import just_fix_windows_console
 
@@ -18,14 +19,39 @@ del just_fix_windows_console
 
 __all__ = [
     "Background",
+    "ColoredFileLogger",
     "ColoredLogger",
     "Console",
     "Cursor",
     "Erase",
-    "ColoredFileLogger",
     "Foreground",
     "Logger",
     "LogLevel",
     "LogLevelLike",
     "Modifier",
 ]
+
+_loggers = dict[str, Logger]()
+
+
+def get_logger(
+    name: str, /, cls_or_factory: type[Logger] | Callable[[], Logger] = ColoredLogger
+) -> Logger:
+    """
+    Gets a logger with the specified name.\n
+    If the logger does not exist, it is created and added to the `loggers` dictionary.\n
+    Purely for compatibility with the `logging` module.
+
+    ### Args:
+        name (str): The name of the logger.
+        cls_or_factory (type[Logger], optional): The class or factory to use to create the logger. Defaults to ColoredLogger.
+
+    ### Returns:
+        Logger: The logger.
+    """
+    if name not in _loggers:
+        _loggers[name] = cls_or_factory()
+    return _loggers[name]
+
+
+getLogger = get_logger

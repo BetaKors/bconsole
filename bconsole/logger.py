@@ -1,15 +1,15 @@
-import atexit
 import traceback
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from sys import stderr, stdout
-from typing import Any, Final, Literal, Self, TextIO, override
+from typing import Any, Literal, Self, TextIO, override
 
 from .core import Foreground, Modifier
 from .utils import clear_ansi
 
-__all__ = ["LogLevel", "LogLevelLike", "Logger", "ColoredLogger"]
+__all__ = ["LogLevel", "LogLevelLike", "Logger", "ColoredLogger", "ColoredFileLogger"]
 
 """Type alias for a log level or a string representing a log level."""
 type LogLevelLike = (
@@ -28,7 +28,7 @@ class LogLevel(Enum):
     Critical = "critical"
 
     @classmethod
-    def ensure(cls, level: LogLevelLike) -> Self:
+    def ensure(cls, level: LogLevelLike, /) -> Self:
         """
         Converts a string to a LogLevel if necessary.
 
@@ -38,9 +38,7 @@ class LogLevel(Enum):
         ### Returns:
             LogLevel: The log level.
         """
-        if isinstance(level, str):
-            return cls[level.title()]
-        return level  # type: ignore
+        return cls[level.title()] if isinstance(level, str) else level  # type: ignore
 
 
 class Logger:
@@ -66,14 +64,11 @@ class Logger:
         ### Returns:
             str: The formatted, logged message.
         """
-        file = self._get_file(message, level)
         formatted = self._format(message, level, end)
 
-        if file:
+        if file := self._get_file(message, level):
             file.write(formatted)
-
-            if flush:
-                file.flush()
+            _ = flush and file.flush()
 
         return formatted
 
@@ -137,15 +132,15 @@ class Logger:
         """
         Gets the file to write the log message to based on message or log level.\n
         Can be overriden to write to a different file for different messages or log levels.\n
-        If None, the message will not be logged.\n
-        By default, uses stderr if the level is error or critical, and stdout otherwise. `message` is unused.
+        If `None`, the message will simply not be logged and no exceptions will be thrown.\n
+        By default, uses `stderr` if `level` is `LogLevel.Error` or `LogLevel.Critical`, and `stdout` otherwise, and `message` is unused.
 
         ### Args:
             message (str): The message being logged.
-            level (LogLevelLike, optional): The log level. Defaults to LogLevel.INFO.
+            level (LogLevelLike, optional): The log level. Defaults to `LogLevel.Info`.
 
         ### Returns:
-            TextIO | None: The file to write the log message to. If None, the message will not be logged.
+            TextIO | None: The file to write the log message to. If `None`, the message will not be logged.
         """
         return (
             stderr
@@ -173,7 +168,7 @@ class Logger:
 class ColoredLogger(Logger):
     """An example of how to override the Logger class to provide colored logging with timestamps and stack information."""
 
-    _color_mapping: Final = {
+    COLORS = {
         LogLevel.Verbose: Foreground.CYAN,
         LogLevel.Debug: Foreground.GREEN,
         LogLevel.Info: Foreground.WHITE,
@@ -182,7 +177,7 @@ class ColoredLogger(Logger):
         LogLevel.Critical: Foreground.RED,
     }
 
-    _modifier_mapping: Final = {
+    MODIFIERS = {
         LogLevel.Verbose: Modifier.ITALIC,
         LogLevel.Debug: Modifier.ITALIC,
         LogLevel.Info: Modifier.NONE,
@@ -198,25 +193,22 @@ class ColoredLogger(Logger):
         frame = traceback.extract_stack(limit=5)[0]
 
         level = LogLevel.ensure(level)
-        dt = datetime.now().strftime("%Y-%m-%d｜%H:%M:%S")
-        file = Path(frame.filename or "").stem
+        dt = datetime.now().strftime("%Y-%m-%d@%H:%M:%S")
+        file = Path(frame.filename).stem
         loc = frame.lineno or 0
 
         return (
             f"{Foreground.CYAN}({dt}){Modifier.RESET} "
             f"{Foreground.YELLOW}[{file}@L{loc}]{Modifier.RESET} "
-            f"{self._modifier_mapping[level]}{self._color_mapping[level]}{super()._format(message, level)}{Modifier.RESET}"
+            f"{self.MODIFIERS[level]}{self.COLORS[level]}{super()._format(message, level)}{Modifier.RESET}"
         )
 
 
+@dataclass
 class ColoredFileLogger(ColoredLogger):
-    """A logger that logs to a file and optionally to the terminal."""
+    """A logger that logs both to a file and the terminal. Can be used as a context manager."""
 
-    def __init__(self, file: TextIO, /, log_to_terminal: bool = True) -> None:
-        self._file = file
-        self.log_to_terminal = log_to_terminal
-
-        atexit.register(self.close)
+    _file: TextIO
 
     def __enter__(self) -> Self:
         return self
@@ -224,28 +216,31 @@ class ColoredFileLogger(ColoredLogger):
     def __exit__(self, *_: Any) -> None:
         self.close()
 
-    @classmethod
-    def from_path(cls, path: Path | str, /, encoding: str = "utf-8") -> Self:
-        path = Path(path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        return cls(open(path, mode="w+", encoding=encoding))
-
     @property
-    def file(self) -> TextIO | None:
+    def file(self) -> TextIO:
+        """The file to log to."""
         return self._file
 
     @file.setter
     def file(self, value: TextIO) -> None:
-        self.close()
+        _ = not self._file.closed and self.close()
         self._file = value
 
-    @property
-    def is_open(self) -> bool:
-        return not self.is_closed
+    @classmethod
+    def from_path(cls, path: Path | str, /, encoding: str = "utf-8") -> Self:
+        """
+        Creates a new `ColoredFileLogger` instance from the specified path and creates the parent directories if they don't exist.
 
-    @property
-    def is_closed(self) -> bool:
-        return self._file is None or self._file.closed
+        ### Args:
+            path (Path | str): The path to the file.
+            encoding (str, optional): The encoding to use. Defaults to "utf-8".
+
+        ### Returns:
+            Self: The new `ColoredFileLogger` instance.
+        """
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        return cls(open(path, mode="w+", encoding=encoding))
 
     @override
     def log(
@@ -257,25 +252,12 @@ class ColoredFileLogger(ColoredLogger):
         end: str = "\n",
         flush: bool = False,
     ) -> str:
-        formatted = super().log(message, level, end=end, flush=flush)
-
-        if self.is_open:
-            self._file.write(clear_ansi(formatted))  # type: ignore
-
-            if flush:
-                self._file.flush()  # type: ignore
-
+        self._file.write(
+            clear_ansi(formatted := super().log(message, level, end=end, flush=flush))
+        )
+        _ = flush and self._file.flush()
         return formatted
 
-    @override
-    def _get_file(
-        self, message: str, level: LogLevelLike = LogLevel.Info, /
-    ) -> TextIO | None:
-        return super()._get_file(message, level) if self.log_to_terminal else None
-
     def close(self) -> None:
-        if self.is_closed:
-            return
-
-        self._file.close()  # type: ignore
-        self._file = None
+        """Closes the file."""
+        self._file.close()

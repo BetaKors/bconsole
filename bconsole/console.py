@@ -4,7 +4,7 @@ from functools import partial
 from getpass import getpass
 from os import system as execute
 from sys import stdin, stdout
-from typing import Any, Iterable, Literal, NoReturn, TextIO, overload
+from typing import Any, Iterable, Literal, NoReturn, Sequence, TextIO, overload
 
 from unidecode import unidecode
 
@@ -94,9 +94,7 @@ class Console:
             flush (bool, optional): Whether to flush the output. Defaults to False.
         """
         self.file_out.write(self.colorize(text, color) + end)
-
-        if flush:
-            self.file_out.flush()
+        _ = flush and self.file_out.flush()
 
     def input(
         self,
@@ -162,10 +160,11 @@ class Console:
         self,
         prompt: str,
         /,
-        options: list[str] | None = None,
+        options: Sequence[str] | None = None,
         *,
         show_options: bool = True,
         allow_suggestions: bool = True,
+        oxford_comma: bool = True,
         return_style: Literal["raw", "option", "simplified"] = "option",
         option_wrapper: str | None = "[]",
         options_end: str | None = "?",
@@ -176,9 +175,10 @@ class Console:
 
         ### Args:
             prompt (str): The prompt to display.
-            options (list[str], optional): A list of options. Defaults to ["Yes", "No"].
+            options (Sequence[str], optional): A `Sequence` of options. Defaults to ["Yes", "No"].
             show_options (bool, optional): Whether to show the options list. Defaults to True.
             allow_suggestions (bool, optional): Whether to show suggestions for the user when they make an invalid selection. Defaults to True.
+            oxford_comma (bool, optional): Whether to use an Oxford comma. Defaults to True.
             return_style (Literal["raw", "option", "simplified"], optional): The returning style to use for the selected option. Defaults to "option". Can be "raw", "option", or "simplified". "raw" returns the raw user input, "option" returns the option selected from the options list, and "simplified" returns the first character of the option selected from the options list.
             options_wrapper (str, optional): The wrapper to use around each of the options. Defaults to "[]". Example: "[x] or [y]". Can also be None or empty. Example: "x or y".
             options_end (str, optional): The end to use after the options list. Defaults to "?".
@@ -209,8 +209,9 @@ class Console:
             unidecode(option).casefold().strip(): option.strip() for option in options
         }
 
-        formatted_options = self._format_items(
-            surround_with(option, wrapper=option_wrapper) for option in options
+        formatted_options = self.format_iter(
+            (surround_with(option, wrapper=option_wrapper) for option in options),
+            final_sep=oxford_comma and ", or" or " or",
         )
 
         while True:
@@ -269,9 +270,7 @@ class Console:
             same_line (bool, optional): Whether to print the hint on the same line as the error. Defaults to True.
         """
         self.print(error, self.error_color, end=" " if same_line else "\n")
-
-        if hint:
-            self.print(hint, self.hint_color)
+        _ = hint and self.print(hint, self.hint_color)
 
     def panic(self, reason: Exception | str, /, *, code: int = -1) -> NoReturn:
         """
@@ -297,9 +296,7 @@ class Console:
             flush (bool, optional): Whether to flush the output. Defaults to False.
         """
         self.print(self.arrow_, self.arrow_color, end="", flush=flush)
-
-        if text:
-            self.print(text, color)
+        _ = text and self.print(text, color)
 
     def actions(self, *args: str) -> None:
         """
@@ -349,7 +346,7 @@ class Console:
         """Clears the console."""
         execute("cls||clear")
 
-    def colorize(self, text: Any, color: str, /) -> str:
+    def colorize(self, text: Any, /, color: str) -> str:
         """
         Helper method to colorize text.
 
@@ -362,17 +359,17 @@ class Console:
         """
         return f"{color}{str(text)}{Modifier.RESET}"
 
-    def _format_items(
+    def format_iter(
         self,
         items: Iterable[str],
         sep: str = ", ",
         final_sep: str = " or ",
     ) -> str:
         """
-        Formats a list of items into a string with the specified separator and final separator.
+        Formats items into a string with the specified separator and final separator.
 
         ### Args:
-            items (list[str]): The items to format.
+            items (Iterable[str]): The items to format.
             sep (str, optional): The separator to use. Defaults to ", ".
             final_sep (str, optional): The final separator to use. Defaults to " or ".
 
@@ -380,7 +377,7 @@ class Console:
             str: The formatted string.
 
         ### Example:
-            >>> console._format_items("apple", "banana", "cherry")
+            >>> console._format_items(("apple", "banana", "cherry"))
             "apple, banana or cherry"
         """
         return replace_last(sep.join(items), sep, final_sep)
