@@ -5,11 +5,11 @@ console = Console()
 console.print("Hello World!", Foreground.WHITE + Modifier.BOLD)
 console.print(
     "You can make completely custom colors too!",
-    Foreground.make_rgb(255, 128, 30),  # not supported in all terminals
+    Foreground.from_rgb(255, 128, 30),  # not supported in all terminals
 )
 name = console.input("What is your name?")
 
-console.print(f"Hello, {name}!", Foreground.make(31))  # same as Foreground.RED
+console.print(f"Hello, {name}!", Foreground.from_code(31))  # same as Foreground.RED
 
 console.space()
 

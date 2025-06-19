@@ -172,7 +172,7 @@ class ColoredLogger(Logger):
         LogLevel.Verbose: Foreground.CYAN,
         LogLevel.Debug: Foreground.GREEN,
         LogLevel.Info: Foreground.WHITE,
-        LogLevel.Warning: Foreground.make_rgb(255, 164, 0),  # orange
+        LogLevel.Warning: Foreground.from_rgb(255, 164, 0),  # orange
         LogLevel.Error: Foreground.RED,
         LogLevel.Critical: Foreground.RED,
     }

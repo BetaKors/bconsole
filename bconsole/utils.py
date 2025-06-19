@@ -2,16 +2,35 @@ import re
 from difflib import SequenceMatcher
 from typing import Iterable
 
-from .core import _ESC  # type: ignore
-
 __all__ = [
     "clear_ansi",
     "find_closest_match",
     "first",
     "halve_at",
+    "hex_to_rgb",
+    "hsl_to_rgb",
     "replace_last",
     "surround_with",
 ]
+
+
+_ESC = "\033"
+
+
+def first[T, TDefault](
+    iterable: Iterable[T], /, default: TDefault = None
+) -> T | TDefault:
+    """
+    Returns the first element of an iterable, or the specified default value if the iterable is empty.
+
+    ### Args:
+        iterable (Iterable[T]): The iterable to get the first element of.
+        default (TDefault, optional): The default value to return if the iterable is empty. Defaults to None.
+
+    ### Returns:
+        T | TDefault: The first element of the iterable, or the default value if the iterable is empty.
+    """
+    return next(iter(iterable), default)
 
 
 def surround_with(text: str, /, *, wrapper: str) -> str:
@@ -64,22 +83,6 @@ def replace_last(text: str, old: str, new: str, /) -> str:
     return new.join(text.rsplit(old, 1))
 
 
-def first[T, TDefault](
-    iterable: Iterable[T], /, default: TDefault = None
-) -> T | TDefault:
-    """
-    Returns the first element of an iterable, or the specified default value if the iterable is empty.
-
-    ### Args:
-        iterable (Iterable[T]): The iterable to get the first element of.
-        default (TDefault, optional): The default value to return if the iterable is empty. Defaults to None.
-
-    ### Returns:
-        T | TDefault: The first element of the iterable, or the default value if the iterable is empty.
-    """
-    return next(iter(iterable), default)
-
-
 def find_closest_match[TDefault](
     string: str,
     options: Iterable[str],
@@ -119,3 +122,63 @@ def clear_ansi(string: str, /) -> str:
         str: The cleared string.
     """
     return re.sub(rf"{_ESC}\[[0-9;]*m", "", string)
+
+
+def clamp(value: float, min_: float, max_: float) -> float:
+    """
+    Clamps a value between a minimum and maximum value.
+
+    ### Args:
+        value (float): The value to clamp.
+        min_ (float): The minimum value.
+        max_ (float): The maximum value.
+
+    ### Returns:
+        float: The clamped value.
+    """
+    return max(min_, min(max_, value))
+
+
+def hex_to_rgb(hex: str, /) -> tuple[int, int, int]:
+    """
+    Converts a hexadecimal color code to its RGB components.
+
+    ### Args:
+        hex (str): The hexadecimal color code to convert.
+
+    ### Returns:
+        tuple[int, int, int]: The RGB components of the color code.
+    """
+    hex = hex.lstrip("#")
+
+    if len(hex) != 6:
+        raise ValueError(
+            f"Invalid hexadecimal color code: {hex}. Note that the alpha channel is not supported."
+        )
+
+    return tuple(int(hex[i : i + 2], 16) for i in (0, 2, 4))  # type: ignore
+
+
+def hsl_to_rgb(h: float, s: float, l: float, /) -> tuple[float, float, float]:  # noqa: E741
+    """
+    Converts a HSL color to its RGB components.
+
+    ### Args:
+        h (float): The hue component.
+        s (float): The saturation component.
+        l (float): The lightness component.
+
+    ### Returns:
+        tuple[float, float, float]: The RGB components of the color.
+    """
+    nr = abs(h * 6.0 - 3.0) - 1.0
+    ng = 2.0 - abs(h * 6.0 - 2.0)
+    nb = 2.0 - abs(h * 6.0 - 4.0)
+
+    nr = clamp(nr, 0.0, 1.0)
+    nb = clamp(nb, 0.0, 1.0)
+    ng = clamp(ng, 0.0, 1.0)
+
+    chroma = (1.0 - abs(2.0 * l - 1.0)) * s
+
+    return (nr - 0.5) * chroma + l, (ng - 0.5) * chroma + l, (nb - 0.5) * chroma + l

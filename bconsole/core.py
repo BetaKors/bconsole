@@ -3,7 +3,9 @@ from __future__ import annotations
 from abc import ABC, ABCMeta, abstractmethod
 from re import findall as find_all
 from sys import stdin, stdout
-from typing import Any, Final, Literal, NoReturn, TextIO, final, override
+from typing import Any, Final, Literal, NoReturn, TextIO, cast, final, override
+
+from .utils import hex_to_rgb, hsl_to_rgb
 
 __all__ = [
     "TerminalColor",
@@ -18,7 +20,10 @@ _ESC = "\033"
 
 
 class _ImmutableMeta(type):
-    """Metaclass that makes classes immutable, not their instances. Does not prevent the addition of new attributes."""
+    """
+    Metaclass that makes classes immutable, not their instances.
+    Does not prevent the addition of new attributes.
+    """
 
     @final
     def __setattr__(cls, name: str, value: Any) -> None:
@@ -53,7 +58,7 @@ class TerminalColor(_Uninitiliazable, ABC, metaclass=_ABCImmutableMeta):
 
     @staticmethod
     @abstractmethod
-    def make_rgb(r: int, g: int, b: int, /) -> str:
+    def from_rgb(r: int, g: int, b: int, /) -> str:
         """
         Creates a True Color Escape Code Sequence for the terminal color using the RGB values provided.\n
         Note that this functionality is not supported by all terminals.
@@ -69,8 +74,46 @@ class TerminalColor(_Uninitiliazable, ABC, metaclass=_ABCImmutableMeta):
         raise NotImplementedError()
 
     @final
+    @classmethod
+    def from_hex(cls, hex: str, /) -> str:
+        """
+        Creates an Escape Code Sequence for the terminal color using the hexadecimal color code provided.
+
+        ### Args:
+            hex (str): hexadecimal color code
+
+        ### Returns:
+            str: Escape Code Sequence
+        """
+        if cls == TerminalColor:
+            raise NotImplementedError(
+                "TerminalColor.from_hex is not implemented. Use one of the subclasses instead."
+            )
+        return cls.from_rgb(*hex_to_rgb(hex))
+
+    @final
+    @classmethod
+    def from_hsl(cls, h: float, s: float, l: float, /) -> str:  # noqa: E741
+        """
+        Creates an Escape Code Sequence for the terminal color using the HSL color provided.
+
+        ### Args:
+            h (float): hue component
+            s (float): saturation component
+            l (float): lightness component
+
+        ### Returns:
+            str: Escape Code Sequence
+        """
+        if cls == TerminalColor:
+            raise NotImplementedError(
+                "TerminalColor.from_hex is not implemented. Use one of the subclasses instead."
+            )
+        return cls.from_rgb(*tuple(map(int, hsl_to_rgb(h, s, l))))
+
+    @final
     @staticmethod
-    def make(code: int, /) -> str:
+    def from_code(code: int, /) -> str:
         """
         Creates an Escape Code Sequence for the terminal color using the ANSI Code provided.
 
@@ -86,7 +129,8 @@ class TerminalColor(_Uninitiliazable, ABC, metaclass=_ABCImmutableMeta):
     @staticmethod
     def colorize(text: str, /, color: str) -> str:
         """
-        Colorizes the specified text with the specified color.
+        Colorizes the specified text with the specified color and adds a RESET at the end for easier concatenation
+        of multiple pieces of colored text.
 
         ### Args:
             text (str): The text to colorize.
@@ -113,7 +157,7 @@ class Foreground(TerminalColor):
 
     @override
     @staticmethod
-    def make_rgb(r: int, g: int, b: int, /) -> str:
+    def from_rgb(r: int, g: int, b: int, /) -> str:
         return f"{_ESC}[38;2;{r};{g};{b}m"
 
 
@@ -132,7 +176,7 @@ class Background(TerminalColor):
 
     @override
     @staticmethod
-    def make_rgb(r: int, g: int, b: int, /) -> str:
+    def from_rgb(r: int, g: int, b: int, /) -> str:
         return f"{_ESC}[48;2;{r};{g};{b}m"
 
 
@@ -184,7 +228,7 @@ class Cursor(_Uninitiliazable, metaclass=_ImmutableMeta):
         while (c := file_in.read(1)) != "R":
             buf += c
 
-        return tuple(map(int, find_all(r"\d+", buf)))  # type: ignore
+        return cast(tuple[int, int], tuple(map(int, find_all(r"\d+", buf))))
 
     @staticmethod
     def set_pos(column: int, line: int, /) -> str:
