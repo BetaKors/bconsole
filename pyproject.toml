@@ -2,19 +2,13 @@
 name = "bconsole"
 version = "0.0.16"
 description = "A logging library that provides helper classes and functions to colorize and manipulate terminal output easily."
-author = "BetaKors"
+authors = ["BetaKors"]
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/betakors/bconsole"
 homepage = "https://github.com/betakors/bconsole"
 
-keywords = [
-    "terminal",
-    "terminal-colors",
-    "logging",
-    "logger",
-    "colorama",
-]
+keywords = ["terminal", "terminal-colors", "logging", "logger", "colorama"]
 
 classifiers = [
     "Development Status :: 4 - Beta",
