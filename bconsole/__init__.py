@@ -12,6 +12,7 @@ from colorama import just_fix_windows_console
 
 from .console import Console
 from .core import Background, Cursor, Erase, Foreground, Modifier
+from .extras import CSSBackground, CSSForeground
 from .logger import ColoredFileLogger, ColoredLogger, Logger, LogLevel, LogLevelLike
 
 just_fix_windows_console()
@@ -22,6 +23,8 @@ __all__ = [
     "ColoredFileLogger",
     "ColoredLogger",
     "Console",
+    "CSSBackground",
+    "CSSForeground",
     "Cursor",
     "Erase",
     "Foreground",

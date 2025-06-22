@@ -4,6 +4,7 @@ from typing import Iterable
 
 __all__ = [
     "clear_ansi",
+    "combine_metaclasses",
     "find_closest_match",
     "first",
     "halve_at",
@@ -15,6 +16,21 @@ __all__ = [
 
 
 _ESC = "\033"
+
+
+def combine_metaclasses(*metaclasses: type[type]) -> type[type]:
+    """
+    Combines multiple metaclasses into a type for easier subclassing.
+
+    ### Args:
+        metaclasses (type[type]): The metaclasses to combine.
+
+    ### Returns:
+        type[type]: The combined metaclass.
+    """
+    if len(metaclasses) == 1:
+        return metaclasses[0]
+    return type("_".join(C.__name__ for C in metaclasses), (*metaclasses,), {})
 
 
 def first[T, TDefault](

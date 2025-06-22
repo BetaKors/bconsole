@@ -5,7 +5,7 @@ from re import findall as find_all
 from sys import stdin, stdout
 from typing import Any, Final, Literal, NoReturn, TextIO, cast, final, override
 
-from .utils import hex_to_rgb, hsl_to_rgb
+from .utils import combine_metaclasses, hex_to_rgb, hsl_to_rgb
 
 __all__ = [
     "TerminalColor",
@@ -36,10 +36,6 @@ class _ImmutableMeta(type):
         raise AttributeError(f"Cannot delete attribute {name!r}")
 
 
-class _ABCImmutableMeta(ABCMeta, _ImmutableMeta):
-    """Metaclass for immutable ABC classes."""
-
-
 class _Uninitiliazable:
     """Makes classes uninitializable. Kinda like static classes in other languages!"""
 
@@ -51,7 +47,9 @@ class _Uninitiliazable:
     def __init__(self) -> None: ...
 
 
-class TerminalColor(_Uninitiliazable, ABC, metaclass=_ABCImmutableMeta):
+class TerminalColor(
+    _Uninitiliazable, ABC, metaclass=combine_metaclasses(_ImmutableMeta, ABCMeta)
+):
     """Abstract class for terminal colors."""
 
     RESET: Final = f"{_ESC}[0m"

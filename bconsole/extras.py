@@ -1,5 +1,7 @@
 # pyright: reportPrivateUsage=false
 
+from typing import Any, Callable
+
 from .core import (
     Background,
     Foreground,
@@ -7,319 +9,221 @@ from .core import (
     _ImmutableMeta,
     _Uninitiliazable,
 )
-
-__all__ = ["CSSForeground", "CSSBackground"]
-
-
-_FG_HEX = Foreground.from_hex
-_BG_HEX = Background.from_hex
+from .utils import combine_metaclasses
 
 
-class CSSForeground(_Uninitiliazable, metaclass=_ImmutableMeta):
+def _gen_metaclass(f: Callable[[str], str], /) -> type:
+    """
+    Makes a metaclass that applies a function to all class variables of its superclasses.\n
+    Used specifically to apply the `from_hex` function to all hex codes in `CSSHexColors`
+    depending on whether the class represents a foreground or background color.\n
+
+    Alternatively, a dict with all the hex codes and a dynamic type could've been used, but this
+    is better since it also provides autocomplete and type safety considering the `CSSForeground` and
+    `CSSBackground` classes both inherit from `CSSHexColors`, which contains all the class variable names
+    typed as `str`. A simpler way to do this would be to just write both classes by hand, but that would
+    require repeating oneself, which, as we all know, is a bad idea.\n
+
+    Who am I kidding? I just wrote this because it looks cool!
+
+    ### Args:
+        f (Callable[[str], str]): The function to apply.
+
+    ### Returns:
+        type: The metaclass.
+    """
+
+    class _ApplyFunction(type):
+        def __new__(
+            mcs: type,
+            name: str,
+            bases: tuple[type, ...],
+            _: dict[str, Any],
+            **kwargs: Any,
+        ) -> type:
+            namespace = {
+                key: f(value) for base in bases for key, value in base.__dict__.items()
+            }
+            return super().__new__(mcs, name, bases, namespace, **kwargs)  # type: ignore
+
+    return _ApplyFunction
+
+
+def _apply_if_hex(f: Callable[[str], str], /) -> Callable[[Any], Any]:
+    def wrapper(value: Any) -> Any:
+        return f(value) if isinstance(value, str) and value.startswith("#") else value
+
+    return wrapper
+
+
+class CSSHexColors(_Uninitiliazable, metaclass=_ImmutableMeta):
+    """Base class for CSS colors. Contains the hex codes for all CSS colors."""
+
+    TRANSPARENT = Modifier.HIDDEN
+
+    ALICE_BLUE = "#F0F8FF"
+    ANTIQUE_WHITE = "#FAEBD7"
+    AQUA = "#00FFFF"
+    AQUAMARINE = "#7FFFD4"
+    AZURE = "#F0FFFF"
+    BEIGE = "#F5F5DC"
+    BISQUE = "#FFE4C4"
+    BLACK = "#000000"
+    BLANCHED_ALMOND = "#FFEBCD"
+    BLUE = "#0000FF"
+    BLUE_VIOLET = "#8A2BE2"
+    BROWN = "#A52A2A"
+    BURLY_WOOD = "#DEB887"
+    CADET_BLUE = "#5F9EA0"
+    CHARTREUSE = "#7FFF00"
+    CHOCOLATE = "#D2691E"
+    CORAL = "#FF7F50"
+    CORNFLOWER_BLUE = "#6495ED"
+    CORNSILK = "#FFF8DC"
+    CRIMSON = "#DC143C"
+    CYAN = "#00FFFF"
+    DARK_BLUE = "#00008B"
+    DARK_CYAN = "#008B8B"
+    DARK_GOLDEN_ROD = "#B8860B"
+    DARK_GRAY = "#A9A9A9"
+    DARK_GREY = DARK_GRAY  # alias
+    DARK_GREEN = "#006400"
+    DARK_KHAKI = "#BDB76B"
+    DARK_MAGENTA = "#8B008B"
+    DARK_OLIVE_GREEN = "#556B2F"
+    DARK_ORANGE = "#FF8C00"
+    DARK_ORCHID = "#9932CC"
+    DARK_RED = "#8B0000"
+    DARK_SALMON = "#E9967A"
+    DARK_SEA_GREEN = "#8FBC8F"
+    DARK_SLATE_BLUE = "#483D8B"
+    DARK_SLATE_GRAY = "#2F4F4F"
+    DARK_SLATE_GREY = DARK_SLATE_GRAY  # alias
+    DARK_TURQUOISE = "#00CED1"
+    DARK_VIOLET = "#9400D3"
+    DEEP_PINK = "#FF1493"
+    DEEP_SKY_BLUE = "#00BFFF"
+    DIM_GRAY = "#696969"
+    DIM_GREY = DIM_GRAY  # alias
+    DODGER_BLUE = "#1E90FF"
+    FIRE_BRICK = "#B22222"
+    FLORAL_WHITE = "#FFFAF0"
+    FOREST_GREEN = "#228B22"
+    FUCHSIA = "#FF00FF"
+    GAINSBORO = "#DCDCDC"
+    GHOST_WHITE = "#F8F8FF"
+    GOLD = "#FFD700"
+    GOLDEN_ROD = "#DAA520"
+    GRAY = "#808080"
+    GREY = GRAY  # alias
+    GREEN = "#00ff00"
+    GREEN_YELLOW = "#ADFF2F"
+    HONEY_DEW = "#F0FFF0"
+    HOT_PINK = "#FF69B4"
+    INDIAN_RED = "#CD5C5C"
+    INDIGO = "#4B0082"
+    IVORY = "#FFFFF0"
+    KHAKI = "#F0E68C"
+    LAVENDER = "#E6E6FA"
+    LAVENDER_BLUSH = "#FFF0F5"
+    LAWN_GREEN = "#7CFC00"
+    LEMON_CHIFFON = "#FFFACD"
+    LIGHT_BLUE = "#ADD8E6"
+    LIGHT_CORAL = "#F08080"
+    LIGHT_CYAN = "#E0FFFF"
+    LIGHT_GOLDEN_ROD_YELLOW = "#FAFAD2"
+    LIGHT_GRAY = "#D3D3D3"
+    LIGHT_GREEN = "#90EE90"
+    LIGHT_GREY = "#D3D3D3"
+    LIGHT_PINK = "#FFB6C1"
+    LIGHT_SALMON = "#FFA07A"
+    LIGHT_SEA_GREEN = "#20B2AA"
+    LIGHT_SKY_BLUE = "#87CEFA"
+    LIGHT_SLATE_GRAY = "#778899"
+    LIGHT_SLATE_GREY = LIGHT_SLATE_GRAY  # alias
+    LIGHT_STEEL_BLUE = "#B0C4DE"
+    LIGHT_YELLOW = "#FFFFE0"
+    LIME = "#00FF00"
+    LIME_GREEN = "#32CD32"
+    LINEN = "#FAF0E6"
+    MAGENTA = "#FF00FF"
+    MAROON = "#800000"
+    MEDIUM_AQUA_MARINE = "#66CDAA"
+    MEDIUM_BLUE = "#0000CD"
+    MEDIUM_ORCHID = "#BA55D3"
+    MEDIUM_PURPLE = "#9370DB"
+    MEDIUM_SEA_GREEN = "#3CB371"
+    MEDIUM_SLATE_BLUE = "#7B68EE"
+    MEDIUM_SPRING_GREEN = "#00FA9A"
+    MEDIUM_TURQUOISE = "#48D1CC"
+    MEDIUM_VIOLET_RED = "#C71585"
+    MIDNIGHT_BLUE = "#191970"
+    MINT_CREAM = "#F5FFFA"
+    MISTY_ROSE = "#FFE4E1"
+    MOCCASIN = "#FFE4B5"
+    NAVAJO_WHITE = "#FFDEAD"
+    NAVY = "#000080"
+    OLD_LACE = "#FDF5E6"
+    OLIVE = "#808000"
+    OLIVE_DRAB = "#6B8E23"
+    ORANGE = "#FFA500"
+    ORANGE_RED = "#FF4500"
+    ORCHID = "#DA70D6"
+    PALE_GOLDEN_ROD = "#EEE8AA"
+    PALE_GREEN = "#98FB98"
+    PALE_TURQUOISE = "#AFEEEE"
+    PALE_VIOLET_RED = "#DB7093"
+    PAPAYA_WHIP = "#FFEFD5"
+    PEACH_PUFF = "#FFDAB9"
+    PERU = "#CD853F"
+    PINK = "#FFC0CB"
+    PLUM = "#DDA0DD"
+    POWDER_BLUE = "#B0E0E6"
+    PURPLE = "#800080"
+    REBECCA_PURPLE = "#663399"
+    RED = "#FF0000"
+    ROSY_BROWN = "#BC8F8F"
+    ROYAL_BLUE = "#4169E1"
+    SADDLE_BROWN = "#8B4513"
+    SALMON = "#FA8072"
+    SANDY_BROWN = "#F4A460"
+    SEA_GREEN = "#2E8B57"
+    SEA_SHELL = "#FFF5EE"
+    SIENNA = "#A0522D"
+    SILVER = "#C0C0C0"
+    SKY_BLUE = "#87CEEB"
+    SLATE_BLUE = "#6A5ACD"
+    SLATE_GRAY = "#708090"
+    SLATE_GREY = SLATE_GRAY  # alias
+    SNOW = "#FFFAFA"
+    SPRING_GREEN = "#00FF7F"
+    STEEL_BLUE = "#4682B4"
+    TAN = "#D2B48C"
+    TEAL = "#008080"
+    THISTLE = "#D8BFD8"
+    TOMATO = "#FF6347"
+    TURQUOISE = "#40E0D0"
+    VIOLET = "#EE82EE"
+    WHEAT = "#F5DEB3"
+    WHITE = "#FFFFFF"
+    WHITE_SMOKE = "#F5F5F5"
+    YELLOW = "#FFFF00"
+    YELLOW_GREEN = "#9ACD32"
+
+
+class CSSForeground(
+    CSSHexColors,
+    metaclass=combine_metaclasses(
+        _gen_metaclass(_apply_if_hex(Foreground.from_hex)), _ImmutableMeta
+    ),
+):
     """CSS foreground colors."""
 
-    TRANSPARENT = Modifier.HIDDEN
 
-    ALICE_BLUE = _FG_HEX("#F0F8FF")
-    ANTIQUE_WHITE = _FG_HEX("#FAEBD7")
-    AQUA = _FG_HEX("#00FFFF")
-    AQUAMARINE = _FG_HEX("#7FFFD4")
-    AZURE = _FG_HEX("#F0FFFF")
-    BEIGE = _FG_HEX("#F5F5DC")
-    BISQUE = _FG_HEX("#FFE4C4")
-    BLACK = _FG_HEX("#000000")
-    BLANCHED_ALMOND = _FG_HEX("#FFEBCD")
-    BLUE = _FG_HEX("#0000FF")
-    BLUE_VIOLET = _FG_HEX("#8A2BE2")
-    BROWN = _FG_HEX("#A52A2A")
-    BURLY_WOOD = _FG_HEX("#DEB887")
-    CADET_BLUE = _FG_HEX("#5F9EA0")
-    CHARTREUSE = _FG_HEX("#7FFF00")
-    CHOCOLATE = _FG_HEX("#D2691E")
-    CORAL = _FG_HEX("#FF7F50")
-    CORNFLOWER_BLUE = _FG_HEX("#6495ED")
-    CORNSILK = _FG_HEX("#FFF8DC")
-    CRIMSON = _FG_HEX("#DC143C")
-    CYAN = _FG_HEX("#00FFFF")
-    DARK_BLUE = _FG_HEX("#00008B")
-    DARK_CYAN = _FG_HEX("#008B8B")
-    DARK_GOLDEN_ROD = _FG_HEX("#B8860B")
-    DARK_GRAY = _FG_HEX("#A9A9A9")
-    DARK_GREEN = _FG_HEX("#006400")
-    DARK_GREY = _FG_HEX("#A9A9A9")
-    DARK_KHAKI = _FG_HEX("#BDB76B")
-    DARK_MAGENTA = _FG_HEX("#8B008B")
-    DARK_OLIVE_GREEN = _FG_HEX("#556B2F")
-    DARK_ORANGE = _FG_HEX("#FF8C00")
-    DARK_ORCHID = _FG_HEX("#9932CC")
-    DARK_RED = _FG_HEX("#8B0000")
-    DARK_SALMON = _FG_HEX("#E9967A")
-    DARK_SEA_GREEN = _FG_HEX("#8FBC8F")
-    DARK_SLATE_BLUE = _FG_HEX("#483D8B")
-    DARK_SLATE_GRAY = _FG_HEX("#2F4F4F")
-    DARK_SLATE_GREY = _FG_HEX("#2F4F4F")
-    DARK_TURQUOISE = _FG_HEX("#00CED1")
-    DARK_VIOLET = _FG_HEX("#9400D3")
-    DEEP_PINK = _FG_HEX("#FF1493")
-    DEEP_SKY_BLUE = _FG_HEX("#00BFFF")
-    DIM_GRAY = _FG_HEX("#696969")
-    DIM_GREY = _FG_HEX("#696969")
-    DODGER_BLUE = _FG_HEX("#1E90FF")
-    FIRE_BRICK = _FG_HEX("#B22222")
-    FLORAL_WHITE = _FG_HEX("#FFFAF0")
-    FOREST_GREEN = _FG_HEX("#228B22")
-    FUCHSIA = _FG_HEX("#FF00FF")
-    GAINSBORO = _FG_HEX("#DCDCDC")
-    GHOST_WHITE = _FG_HEX("#F8F8FF")
-    GOLD = _FG_HEX("#FFD700")
-    GOLDEN_ROD = _FG_HEX("#DAA520")
-    GRAY = _FG_HEX("#808080")
-    GREEN = _FG_HEX("#00ff00")
-    GREEN_YELLOW = _FG_HEX("#ADFF2F")
-    GREY = _FG_HEX("#808080")
-    HONEY_DEW = _FG_HEX("#F0FFF0")
-    HOT_PINK = _FG_HEX("#FF69B4")
-    INDIAN_RED = _FG_HEX("#CD5C5C")
-    INDIGO = _FG_HEX("#4B0082")
-    IVORY = _FG_HEX("#FFFFF0")
-    KHAKI = _FG_HEX("#F0E68C")
-    LAVENDER = _FG_HEX("#E6E6FA")
-    LAVENDER_BLUSH = _FG_HEX("#FFF0F5")
-    LAWN_GREEN = _FG_HEX("#7CFC00")
-    LEMON_CHIFFON = _FG_HEX("#FFFACD")
-    LIGHT_BLUE = _FG_HEX("#ADD8E6")
-    LIGHT_CORAL = _FG_HEX("#F08080")
-    LIGHT_CYAN = _FG_HEX("#E0FFFF")
-    LIGHT_GOLDEN_ROD_YELLOW = _FG_HEX("#FAFAD2")
-    LIGHT_GRAY = _FG_HEX("#D3D3D3")
-    LIGHT_GREEN = _FG_HEX("#90EE90")
-    LIGHT_GREY = _FG_HEX("#D3D3D3")
-    LIGHT_PINK = _FG_HEX("#FFB6C1")
-    LIGHT_SALMON = _FG_HEX("#FFA07A")
-    LIGHT_SEA_GREEN = _FG_HEX("#20B2AA")
-    LIGHT_SKY_BLUE = _FG_HEX("#87CEFA")
-    LIGHT_SLATE_GRAY = _FG_HEX("#778899")
-    LIGHT_SLATE_GREY = _FG_HEX("#778899")
-    LIGHT_STEEL_BLUE = _FG_HEX("#B0C4DE")
-    LIGHT_YELLOW = _FG_HEX("#FFFFE0")
-    LIME = _FG_HEX("#00FF00")
-    LIME_GREEN = _FG_HEX("#32CD32")
-    LINEN = _FG_HEX("#FAF0E6")
-    MAGENTA = _FG_HEX("#FF00FF")
-    MAROON = _FG_HEX("#800000")
-    MEDIUM_AQUA_MARINE = _FG_HEX("#66CDAA")
-    MEDIUM_BLUE = _FG_HEX("#0000CD")
-    MEDIUM_ORCHID = _FG_HEX("#BA55D3")
-    MEDIUM_PURPLE = _FG_HEX("#9370DB")
-    MEDIUM_SEA_GREEN = _FG_HEX("#3CB371")
-    MEDIUM_SLATE_BLUE = _FG_HEX("#7B68EE")
-    MEDIUM_SPRING_GREEN = _FG_HEX("#00FA9A")
-    MEDIUM_TURQUOISE = _FG_HEX("#48D1CC")
-    MEDIUM_VIOLET_RED = _FG_HEX("#C71585")
-    MIDNIGHT_BLUE = _FG_HEX("#191970")
-    MINT_CREAM = _FG_HEX("#F5FFFA")
-    MISTY_ROSE = _FG_HEX("#FFE4E1")
-    MOCCASIN = _FG_HEX("#FFE4B5")
-    NAVAJO_WHITE = _FG_HEX("#FFDEAD")
-    NAVY = _FG_HEX("#000080")
-    OLD_LACE = _FG_HEX("#FDF5E6")
-    OLIVE = _FG_HEX("#808000")
-    OLIVE_DRAB = _FG_HEX("#6B8E23")
-    ORANGE = _FG_HEX("#FFA500")
-    ORANGE_RED = _FG_HEX("#FF4500")
-    ORCHID = _FG_HEX("#DA70D6")
-    PALE_GOLDEN_ROD = _FG_HEX("#EEE8AA")
-    PALE_GREEN = _FG_HEX("#98FB98")
-    PALE_TURQUOISE = _FG_HEX("#AFEEEE")
-    PALE_VIOLET_RED = _FG_HEX("#DB7093")
-    PAPAYA_WHIP = _FG_HEX("#FFEFD5")
-    PEACH_PUFF = _FG_HEX("#FFDAB9")
-    PERU = _FG_HEX("#CD853F")
-    PINK = _FG_HEX("#FFC0CB")
-    PLUM = _FG_HEX("#DDA0DD")
-    POWDER_BLUE = _FG_HEX("#B0E0E6")
-    PURPLE = _FG_HEX("#800080")
-    REBECCA_PURPLE = _FG_HEX("#663399")
-    RED = _FG_HEX("#FF0000")
-    ROSY_BROWN = _FG_HEX("#BC8F8F")
-    ROYAL_BLUE = _FG_HEX("#4169E1")
-    SADDLE_BROWN = _FG_HEX("#8B4513")
-    SALMON = _FG_HEX("#FA8072")
-    SANDY_BROWN = _FG_HEX("#F4A460")
-    SEA_GREEN = _FG_HEX("#2E8B57")
-    SEA_SHELL = _FG_HEX("#FFF5EE")
-    SIENNA = _FG_HEX("#A0522D")
-    SILVER = _FG_HEX("#C0C0C0")
-    SKY_BLUE = _FG_HEX("#87CEEB")
-    SLATE_BLUE = _FG_HEX("#6A5ACD")
-    SLATE_GRAY = _FG_HEX("#708090")
-    SLATE_GREY = _FG_HEX("#708090")
-    SNOW = _FG_HEX("#FFFAFA")
-    SPRING_GREEN = _FG_HEX("#00FF7F")
-    STEEL_BLUE = _FG_HEX("#4682B4")
-    TAN = _FG_HEX("#D2B48C")
-    TEAL = _FG_HEX("#008080")
-    THISTLE = _FG_HEX("#D8BFD8")
-    TOMATO = _FG_HEX("#FF6347")
-    TURQUOISE = _FG_HEX("#40E0D0")
-    VIOLET = _FG_HEX("#EE82EE")
-    WHEAT = _FG_HEX("#F5DEB3")
-    WHITE = _FG_HEX("#FFFFFF")
-    WHITE_SMOKE = _FG_HEX("#F5F5F5")
-    YELLOW = _FG_HEX("#FFFF00")
-    YELLOW_GREEN = _FG_HEX("#9ACD32")
-
-
-class CSSBackground(_Uninitiliazable, metaclass=_ImmutableMeta):
+class CSSBackground(
+    CSSHexColors,
+    metaclass=combine_metaclasses(
+        _gen_metaclass(_apply_if_hex(Background.from_hex)), _ImmutableMeta
+    ),
+):
     """CSS background colors."""
-
-    TRANSPARENT = Modifier.HIDDEN
-
-    ALICE_BLUE = _BG_HEX("#F0F8FF")
-    ANTIQUE_WHITE = _BG_HEX("#FAEBD7")
-    AQUA = _BG_HEX("#00FFFF")
-    AQUAMARINE = _BG_HEX("#7FFFD4")
-    AZURE = _BG_HEX("#F0FFFF")
-    BEIGE = _BG_HEX("#F5F5DC")
-    BISQUE = _BG_HEX("#FFE4C4")
-    BLACK = _BG_HEX("#000000")
-    BLANCHED_ALMOND = _BG_HEX("#FFEBCD")
-    BLUE = _BG_HEX("#0000FF")
-    BLUE_VIOLET = _BG_HEX("#8A2BE2")
-    BROWN = _BG_HEX("#A52A2A")
-    BURLY_WOOD = _BG_HEX("#DEB887")
-    CADET_BLUE = _BG_HEX("#5F9EA0")
-    CHARTREUSE = _BG_HEX("#7FFF00")
-    CHOCOLATE = _BG_HEX("#D2691E")
-    CORAL = _BG_HEX("#FF7F50")
-    CORNFLOWER_BLUE = _BG_HEX("#6495ED")
-    CORNSILK = _BG_HEX("#FFF8DC")
-    CRIMSON = _BG_HEX("#DC143C")
-    CYAN = _BG_HEX("#00FFFF")
-    DARK_BLUE = _BG_HEX("#00008B")
-    DARK_CYAN = _BG_HEX("#008B8B")
-    DARK_GOLDEN_ROD = _BG_HEX("#B8860B")
-    DARK_GRAY = _BG_HEX("#A9A9A9")
-    DARK_GREEN = _BG_HEX("#006400")
-    DARK_GREY = _BG_HEX("#A9A9A9")
-    DARK_KHAKI = _BG_HEX("#BDB76B")
-    DARK_MAGENTA = _BG_HEX("#8B008B")
-    DARK_OLIVE_GREEN = _BG_HEX("#556B2F")
-    DARK_ORANGE = _BG_HEX("#FF8C00")
-    DARK_ORCHID = _BG_HEX("#9932CC")
-    DARK_RED = _BG_HEX("#8B0000")
-    DARK_SALMON = _BG_HEX("#E9967A")
-    DARK_SEA_GREEN = _BG_HEX("#8FBC8F")
-    DARK_SLATE_BLUE = _BG_HEX("#483D8B")
-    DARK_SLATE_GRAY = _BG_HEX("#2F4F4F")
-    DARK_SLATE_GREY = _BG_HEX("#2F4F4F")
-    DARK_TURQUOISE = _BG_HEX("#00CED1")
-    DARK_VIOLET = _BG_HEX("#9400D3")
-    DEEP_PINK = _BG_HEX("#FF1493")
-    DEEP_SKY_BLUE = _BG_HEX("#00BFFF")
-    DIM_GRAY = _BG_HEX("#696969")
-    DIM_GREY = _BG_HEX("#696969")
-    DODGER_BLUE = _BG_HEX("#1E90FF")
-    FIRE_BRICK = _BG_HEX("#B22222")
-    FLORAL_WHITE = _BG_HEX("#FFFAF0")
-    FOREST_GREEN = _BG_HEX("#228B22")
-    FUCHSIA = _BG_HEX("#FF00FF")
-    GAINSBORO = _BG_HEX("#DCDCDC")
-    GHOST_WHITE = _BG_HEX("#F8F8FF")
-    GOLD = _BG_HEX("#FFD700")
-    GOLDEN_ROD = _BG_HEX("#DAA520")
-    GRAY = _BG_HEX("#808080")
-    GREEN = _BG_HEX("#00ff00")
-    GREEN_YELLOW = _BG_HEX("#ADFF2F")
-    GREY = _BG_HEX("#808080")
-    HONEY_DEW = _BG_HEX("#F0FFF0")
-    HOT_PINK = _BG_HEX("#FF69B4")
-    INDIAN_RED = _BG_HEX("#CD5C5C")
-    INDIGO = _BG_HEX("#4B0082")
-    IVORY = _BG_HEX("#FFFFF0")
-    KHAKI = _BG_HEX("#F0E68C")
-    LAVENDER = _BG_HEX("#E6E6FA")
-    LAVENDER_BLUSH = _BG_HEX("#FFF0F5")
-    LAWN_GREEN = _BG_HEX("#7CFC00")
-    LEMON_CHIFFON = _BG_HEX("#FFFACD")
-    LIGHT_BLUE = _BG_HEX("#ADD8E6")
-    LIGHT_CORAL = _BG_HEX("#F08080")
-    LIGHT_CYAN = _BG_HEX("#E0FFFF")
-    LIGHT_GOLDEN_ROD_YELLOW = _BG_HEX("#FAFAD2")
-    LIGHT_GRAY = _BG_HEX("#D3D3D3")
-    LIGHT_GREEN = _BG_HEX("#90EE90")
-    LIGHT_GREY = _BG_HEX("#D3D3D3")
-    LIGHT_PINK = _BG_HEX("#FFB6C1")
-    LIGHT_SALMON = _BG_HEX("#FFA07A")
-    LIGHT_SEA_GREEN = _BG_HEX("#20B2AA")
-    LIGHT_SKY_BLUE = _BG_HEX("#87CEFA")
-    LIGHT_SLATE_GRAY = _BG_HEX("#778899")
-    LIGHT_SLATE_GREY = _BG_HEX("#778899")
-    LIGHT_STEEL_BLUE = _BG_HEX("#B0C4DE")
-    LIGHT_YELLOW = _BG_HEX("#FFFFE0")
-    LIME = _BG_HEX("#00FF00")
-    LIME_GREEN = _BG_HEX("#32CD32")
-    LINEN = _BG_HEX("#FAF0E6")
-    MAGENTA = _BG_HEX("#FF00FF")
-    MAROON = _BG_HEX("#800000")
-    MEDIUM_AQUA_MARINE = _BG_HEX("#66CDAA")
-    MEDIUM_BLUE = _BG_HEX("#0000CD")
-    MEDIUM_ORCHID = _BG_HEX("#BA55D3")
-    MEDIUM_PURPLE = _BG_HEX("#9370DB")
-    MEDIUM_SEA_GREEN = _BG_HEX("#3CB371")
-    MEDIUM_SLATE_BLUE = _BG_HEX("#7B68EE")
-    MEDIUM_SPRING_GREEN = _BG_HEX("#00FA9A")
-    MEDIUM_TURQUOISE = _BG_HEX("#48D1CC")
-    MEDIUM_VIOLET_RED = _BG_HEX("#C71585")
-    MIDNIGHT_BLUE = _BG_HEX("#191970")
-    MINT_CREAM = _BG_HEX("#F5FFFA")
-    MISTY_ROSE = _BG_HEX("#FFE4E1")
-    MOCCASIN = _BG_HEX("#FFE4B5")
-    NAVAJO_WHITE = _BG_HEX("#FFDEAD")
-    NAVY = _BG_HEX("#000080")
-    OLD_LACE = _BG_HEX("#FDF5E6")
-    OLIVE = _BG_HEX("#808000")
-    OLIVE_DRAB = _BG_HEX("#6B8E23")
-    ORANGE = _BG_HEX("#FFA500")
-    ORANGE_RED = _BG_HEX("#FF4500")
-    ORCHID = _BG_HEX("#DA70D6")
-    PALE_GOLDEN_ROD = _BG_HEX("#EEE8AA")
-    PALE_GREEN = _BG_HEX("#98FB98")
-    PALE_TURQUOISE = _BG_HEX("#AFEEEE")
-    PALE_VIOLET_RED = _BG_HEX("#DB7093")
-    PAPAYA_WHIP = _BG_HEX("#FFEFD5")
-    PEACH_PUFF = _BG_HEX("#FFDAB9")
-    PERU = _BG_HEX("#CD853F")
-    PINK = _BG_HEX("#FFC0CB")
-    PLUM = _BG_HEX("#DDA0DD")
-    POWDER_BLUE = _BG_HEX("#B0E0E6")
-    PURPLE = _BG_HEX("#800080")
-    REBECCA_PURPLE = _BG_HEX("#663399")
-    RED = _BG_HEX("#FF0000")
-    ROSY_BROWN = _BG_HEX("#BC8F8F")
-    ROYAL_BLUE = _BG_HEX("#4169E1")
-    SADDLE_BROWN = _BG_HEX("#8B4513")
-    SALMON = _BG_HEX("#FA8072")
-    SANDY_BROWN = _BG_HEX("#F4A460")
-    SEA_GREEN = _BG_HEX("#2E8B57")
-    SEA_SHELL = _BG_HEX("#FFF5EE")
-    SIENNA = _BG_HEX("#A0522D")
-    SILVER = _BG_HEX("#C0C0C0")
-    SKY_BLUE = _BG_HEX("#87CEEB")
-    SLATE_BLUE = _BG_HEX("#6A5ACD")
-    SLATE_GRAY = _BG_HEX("#708090")
-    SLATE_GREY = _BG_HEX("#708090")
-    SNOW = _BG_HEX("#FFFAFA")
-    SPRING_GREEN = _BG_HEX("#00FF7F")
-    STEEL_BLUE = _BG_HEX("#4682B4")
-    TAN = _BG_HEX("#D2B48C")
-    TEAL = _BG_HEX("#008080")
-    THISTLE = _BG_HEX("#D8BFD8")
-    TOMATO = _BG_HEX("#FF6347")
-    TURQUOISE = _BG_HEX("#40E0D0")
-    VIOLET = _BG_HEX("#EE82EE")
-    WHEAT = _BG_HEX("#F5DEB3")
-    WHITE = _BG_HEX("#FFFFFF")
-    WHITE_SMOKE = _BG_HEX("#F5F5F5")
-    YELLOW = _BG_HEX("#FFFF00")
-    YELLOW_GREEN = _BG_HEX("#9ACD32")
