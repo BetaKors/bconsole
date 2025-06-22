@@ -1,19 +1,21 @@
 [tool.poetry]
 name = "bconsole"
 version = "0.0.15"
-description = "A logging library that provides helper classes and functions to easily add colorize manipulate the terminal."
-authors = ["BetaKors"]
-readme = "README.md"
+description = "A logging library that provides helper classes and functions to colorize and manipulate terminal output easily."
+author = "BetaKors"
 license = "MIT"
+readme = "README.md"
 repository = "https://github.com/betakors/bconsole"
+homepage = "https://github.com/betakors/bconsole"
+
 keywords = [
     "terminal",
     "terminal-colors",
-    "logging-library",
     "logging",
     "logger",
     "colorama",
 ]
+
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
