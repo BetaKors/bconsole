@@ -8,11 +8,7 @@ from typing import Any, Iterable, Literal, NoReturn, Sequence, TextIO, overload
 
 from unidecode import unidecode
 
-from .core import (
-    Erase,
-    Foreground,
-    Modifier,
-)
+from .core import Erase, Foreground, Modifier
 from .utils import find_closest_match, first, replace_last, surround_with
 
 __all__ = ["Console"]
@@ -211,7 +207,7 @@ class Console:
 
         formatted_options = self.format_iter(
             (surround_with(option, wrapper=option_wrapper) for option in options),
-            final_sep=oxford_comma and ", or" or " or",
+            final_sep=", or " if oxford_comma else " or ",
         )
 
         while True:
