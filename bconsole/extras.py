@@ -14,7 +14,8 @@ from .utils import combine_metaclasses
 
 def _gen_metaclass(f: Callable[[str], str], /) -> type:
     """
-    Makes a metaclass that applies a function to all class variables of its superclasses.\n
+    Generates a metaclass that applies a function to all class variables of all its constructed class' superclasses.\n
+
     Used specifically to apply the `from_hex` function to all hex codes in `CSSHexColors`
     depending on whether the class represents a foreground or background color.\n
 
