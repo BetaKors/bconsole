@@ -27,6 +27,9 @@ def combine_metaclasses(*metaclasses: type[type]) -> type[type]:
 
     ### Returns:
         type[type]: The combined metaclass.
+
+    ### Raises:
+        TypeError: If a consistent MRO cannot be created.
     """
     if len(metaclasses) == 1:
         return metaclasses[0]
