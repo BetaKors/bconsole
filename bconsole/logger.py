@@ -223,7 +223,7 @@ class ColoredFileLogger(ColoredLogger):
 
     @file.setter
     def file(self, value: TextIO) -> None:
-        _ = not self._file.closed and self.close()
+        self.close()
         self._file = value
 
     @classmethod
@@ -260,4 +260,5 @@ class ColoredFileLogger(ColoredLogger):
 
     def close(self) -> None:
         """Closes the file."""
-        self._file.close()
+        if self._file is not None and not self._file.closed:  # type: ignore
+            self._file.close()

@@ -71,6 +71,8 @@ class Console:
         )
         self.arrow_ = kwargs.get("arrow", ">> ")
 
+        self._get_pass = partial(getpass, "")
+
     def print(
         self,
         text: Any,
@@ -115,42 +117,39 @@ class Console:
         ### Returns:
             str: The user's input.
         """
-        if prompt:
-            self.print(prompt, self.prompt_color)
-            self.arrow(flush=True)
-
-        if is_password:
-            res = getpass("")
-        else:
-            res = self.file_in.readline()
-
-        res = res.strip()
-
         invalid_values = invalid_values or []
 
         if ensure_not_empty:
             invalid_values.append("")
 
-        recur = partial(
-            self.input,
-            prompt,
-            invalid_values=invalid_values,
-            ensure_not_empty=ensure_not_empty,
-            is_password=is_password,
-            allow_extras=allow_extras,
-        )
+        if prompt:
+            self.print(prompt, self.prompt_color)
+            self.arrow(flush=True)
 
-        match res:
-            case "cls" | "clear" if allow_extras:
-                self.clear()
-                return recur()
-            case "exit" | "quit" if allow_extras:
-                exit(0)
-            case _ if res in invalid_values:
-                self.error("Invalid value.", hint="Try again.")
-                return recur()
-            case _:
-                return res
+        f = self._get_pass if is_password else self.file_in.readline
+
+        while True:
+            match res := f().strip():
+                case "cls" | "clear" if allow_extras:
+                    self.clear()
+                case "exit" | "quit" if allow_extras:
+                    exit(0)
+                case _ if res in invalid_values:
+                    self.error("Invalid value.", hint="Try again.")
+                case _:
+                    return res
+
+    def password(self, prompt: str | None = None, /) -> str:
+        """
+        Prompts the user for a password.
+
+        ### Args:
+            prompt (str, optional): The prompt to display. Defaults to None.
+
+        ### Returns:
+            str: The user's password.
+        """
+        return self.input(prompt, is_password=True)
 
     def options(
         self,
@@ -174,7 +173,7 @@ class Console:
             options (Sequence[str], optional): A `Sequence` of options. Defaults to ["Yes", "No"].
             show_options (bool, optional): Whether to show the options list. Defaults to True.
             allow_suggestions (bool, optional): Whether to show suggestions for the user when they make an invalid selection. Defaults to True.
-            oxford_comma (bool, optional): Whether to use an Oxford comma. Defaults to True.
+            oxford_comma (bool, optional): Whether to use the Oxford comma. Defaults to True.
             return_style (Literal["raw", "option", "simplified"], optional): The returning style to use for the selected option. Defaults to "option". Can be "raw", "option", or "simplified". "raw" returns the raw user input, "option" returns the option selected from the options list, and "simplified" returns the first character of the option selected from the options list.
             options_wrapper (str, optional): The wrapper to use around each of the options. Defaults to "[]". Example: "[x] or [y]". Can also be None or empty. Example: "x or y".
             options_end (str, optional): The end to use after the options list. Defaults to "?".
@@ -317,7 +316,7 @@ class Console:
             color (str, optional): The color to use. Defaults to `self.prompt_color`.
         """
         self.print(text, color or self.prompt_color, end="", flush=True)
-        getpass("")
+        self._get_pass()
         self.erase_lines(2)
 
     def space(self, count: int = 1, /) -> None:

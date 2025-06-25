@@ -36,6 +36,11 @@ for i in range(3):
 
 console.erase_lines(2)
 
+if console.password("What is your password?") == "admin":
+    console.print("Hello admin!")
+else:
+    console.print("Hello user!")
+
 console.arrow("I just did something important!")
 
 console.error("Something went wrong!", hint="Maybe you should try again?")
