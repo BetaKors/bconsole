@@ -2,7 +2,7 @@
 
 __title__ = "bconsole"
 __author__ = "BetaKors"
-__version__ = "0.0.17"
+__version__ = "0.0.18"
 __license__ = "MIT"
 __url__ = "https://github.com/BetaKors/bconsole"
 
