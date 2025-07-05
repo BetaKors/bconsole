@@ -168,23 +168,30 @@ class Logger:
 class ColoredLogger(Logger):
     """An example of how to override the Logger class to provide colored logging with timestamps and stack information."""
 
-    COLORS = {
-        LogLevel.Verbose: Foreground.CYAN,
-        LogLevel.Debug: Foreground.GREEN,
-        LogLevel.Info: Foreground.WHITE,
-        LogLevel.Warning: Foreground.from_rgb(255, 164, 0),  # orange
-        LogLevel.Error: Foreground.RED,
-        LogLevel.Critical: Foreground.RED,
-    }
+    def __init__(self) -> None:
+        self.colors = {
+            LogLevel.Verbose: Foreground.CYAN,
+            LogLevel.Debug: Foreground.GREEN,
+            LogLevel.Info: Foreground.WHITE,
+            LogLevel.Warning: Foreground.from_rgb(255, 164, 0),  # orange
+            LogLevel.Error: Foreground.RED,
+            LogLevel.Critical: Foreground.RED,
+        }
 
-    MODIFIERS = {
-        LogLevel.Verbose: Modifier.ITALIC,
-        LogLevel.Debug: Modifier.ITALIC,
-        LogLevel.Info: Modifier.NONE,
-        LogLevel.Warning: Modifier.BOLD,
-        LogLevel.Error: Modifier.BOLD,
-        LogLevel.Critical: Modifier.INVERSE,
-    }
+        self.modifiers = {
+            LogLevel.Verbose: Modifier.ITALIC,
+            LogLevel.Debug: Modifier.ITALIC,
+            LogLevel.Info: Modifier.NONE,
+            LogLevel.Warning: Modifier.BOLD,
+            LogLevel.Error: Modifier.BOLD,
+            LogLevel.Critical: Modifier.INVERSE,
+        }
+
+        self.datetime_fmt = "%Y-%m-%d@%H:%M:%S"
+        self.datetime_color = Foreground.CYAN
+        self.file_info_color = Foreground.YELLOW
+
+        super().__init__()
 
     @override
     def _format(
@@ -193,14 +200,14 @@ class ColoredLogger(Logger):
         frame = traceback.extract_stack(limit=5)[0]
 
         level = LogLevel.ensure(level)
-        dt = datetime.now().strftime("%Y-%m-%d@%H:%M:%S")
+        dt = datetime.now().strftime(self.datetime_fmt)
         file = Path(frame.filename).stem
         loc = frame.lineno or 0
 
         return (
-            f"{Foreground.CYAN}({dt}){Modifier.RESET} "
-            f"{Foreground.YELLOW}[{file}@L{loc}]{Modifier.RESET} "
-            f"{self.MODIFIERS[level]}{self.COLORS[level]}{super()._format(message, level)}{Modifier.RESET}"
+            f"{self.datetime_color}({dt}){Modifier.RESET} "
+            f"{self.file_info_color}[{file}@L{loc}]{Modifier.RESET} "
+            f"{self.modifiers[level]}{self.colors[level]}{super()._format(message, level)}{Modifier.RESET}"
         )
 
 
@@ -209,6 +216,7 @@ class ColoredFileLogger(ColoredLogger):
     """A logger that logs both to a file and the terminal. Can be used as a context manager."""
 
     _file: TextIO
+    _always_flush: bool = True
 
     def __enter__(self) -> Self:
         return self
@@ -240,7 +248,7 @@ class ColoredFileLogger(ColoredLogger):
         """
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        return cls(open(path, mode="w+", encoding=encoding))
+        return cls(open(path, mode="a+", encoding=encoding))
 
     @override
     def log(
@@ -255,7 +263,7 @@ class ColoredFileLogger(ColoredLogger):
         self._file.write(
             clear_ansi(formatted := super().log(message, level, end=end, flush=flush))
         )
-        _ = flush and self._file.flush()
+        _ = (flush or self._always_flush) and self._file.flush()
         return formatted
 
     def close(self) -> None:
