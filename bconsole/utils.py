@@ -1,6 +1,6 @@
 import re
 from difflib import SequenceMatcher
-from typing import Iterable
+from typing import Any, Iterable
 
 __all__ = [
     "clear_ansi",
@@ -29,11 +29,23 @@ def combine_metaclasses(*metaclasses: type[type]) -> type[type]:
         type[type]: The combined metaclass.
 
     ### Raises:
+        ValueError: If no metaclasses are provided.
         TypeError: If a consistent MRO cannot be created.
     """
-    if len(metaclasses) == 1:
+    if len(metaclasses) == 0:
+        raise ValueError("At least one metaclass must be provided.")
+    elif len(metaclasses) == 1:
         return metaclasses[0]
-    return type("_".join(C.__name__ for C in metaclasses), (*metaclasses,), {})
+
+    mcs = type(
+        "_".join(C.__name__.replace("_", "") for C in metaclasses),
+        (*metaclasses,),
+        {k: v for C in metaclasses for k, v in dict[str, Any](C.__dict__).items()},  # type: ignore
+    )
+
+    mcs.__doc__ = f"A metaclass that combines {format_iter((surround_with(C.__name__, wrapper='`') for C in metaclasses), final_sep=' and ')}."
+
+    return mcs
 
 
 def first[T, TDefault](
@@ -54,7 +66,7 @@ def first[T, TDefault](
 
 def surround_with(text: str, /, *, wrapper: str) -> str:
     """
-    Surrounds the specified text with the specified wrapper.
+    Surrounds the specified text with the specified wrapper. Uneven wrappers are accepted but a wrapper of length 1 will be automatically duplicated.
 
     ### Args:
         text (str): The text to surround.
@@ -63,8 +75,14 @@ def surround_with(text: str, /, *, wrapper: str) -> str:
 
     ### Returns:
         str: The surrounded text.
+
+    ### Example:
+        >>> surround_with("Hello, World!", wrapper="[]")
+        [Hello, World!]
+        >>> surround_with("SomeClass", wrapper="`")
+        `SomeClass`
     """
-    w1, w2 = halve_at(wrapper)
+    w1, w2 = (wrapper, wrapper) if len(wrapper) == 1 else halve_at(wrapper)
     return f"{w1}{text}{w2}"
 
 
@@ -100,6 +118,40 @@ def replace_last(text: str, old: str, new: str, /) -> str:
         "apple, banana, cherry"
     """
     return new.join(text.rsplit(old, 1))
+
+
+def format_iter(
+    items: Iterable[str],
+    sep: str = ", ",
+    final_sep: str = " or ",
+    oxford_comma: bool = True,
+) -> str:
+    """
+    Formats items into a string with the specified separator and final separator.
+
+    ### Args:
+        items (Iterable[str]): The items to format.
+        sep (str, optional): The separator to use. Defaults to ", ".
+        final_sep (str, optional): The final separator to use. Defaults to " or ".
+        oxford_comma (bool, optional): Whether to use the Oxford comma. Adds a comma before the final separator if there are more than 2 items. Defaults to True.
+
+    ### Returns:
+        str: The formatted string.
+
+    ### Example:
+        >>> format_iter(("apple", "banana", "cherry"))
+        "apple, banana, or cherry"
+        >>> format_iter(("apple", "banana", "cherry"), oxford_comma=False)
+        "apple, banana or cherry"
+        >>> format_iter(("apple", "banana"))
+        "apple or banana"
+    """
+    t_items = tuple(items)
+
+    if len(t_items) > 2 and oxford_comma:
+        final_sep = "," + final_sep
+
+    return replace_last(sep.join(t_items), sep, final_sep)
 
 
 def find_closest_match[TDefault](

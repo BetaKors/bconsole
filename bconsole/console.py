@@ -4,12 +4,12 @@ from functools import partial
 from getpass import getpass
 from os import system as execute
 from sys import stdin, stdout
-from typing import Any, Iterable, Literal, NoReturn, Sequence, TextIO, overload
+from typing import Any, Literal, NoReturn, Sequence, TextIO, overload
 
 from unidecode import unidecode
 
 from .core import Erase, Foreground, Modifier
-from .utils import find_closest_match, first, replace_last, surround_with
+from .utils import find_closest_match, first, format_iter, surround_with
 
 __all__ = ["Console"]
 
@@ -204,9 +204,9 @@ class Console:
             unidecode(option).casefold().strip(): option.strip() for option in options
         }
 
-        formatted_options = self.format_iter(
+        formatted_options = format_iter(
             (surround_with(option, wrapper=option_wrapper) for option in options),
-            final_sep=", or " if oxford_comma else " or ",
+            oxford_comma=oxford_comma,
         )
 
         while True:
@@ -353,26 +353,3 @@ class Console:
             str: The colorized text. Simply COLOR + TEXT + RESET.
         """
         return f"{color}{str(text)}{Modifier.RESET}"
-
-    def format_iter(
-        self,
-        items: Iterable[str],
-        sep: str = ", ",
-        final_sep: str = " or ",
-    ) -> str:
-        """
-        Formats items into a string with the specified separator and final separator.
-
-        ### Args:
-            items (Iterable[str]): The items to format.
-            sep (str, optional): The separator to use. Defaults to ", ".
-            final_sep (str, optional): The final separator to use. Defaults to " or ".
-
-        ### Returns:
-            str: The formatted string.
-
-        ### Example:
-            >>> console._format_items(("apple", "banana", "cherry"))
-            "apple, banana or cherry"
-        """
-        return replace_last(sep.join(items), sep, final_sep)
