@@ -6,7 +6,7 @@ from sys import stderr, stdout
 from typing import Any, Literal, Self, TextIO, override
 
 from .core import Foreground, Modifier
-from .utils import clear_ansi
+from .utils import clear_ansi, surround_with
 
 __all__ = ["LogLevel", "LogLevelLike", "Logger", "ColoredLogger", "ColoredFileLogger"]
 
@@ -168,7 +168,16 @@ class ColoredLogger(Logger):
     """An example of how to override the Logger class to provide colored logging with timestamps and stack information."""
 
     def __init__(self) -> None:
-        self.colors = {
+        self.datetime_wrapper = "()"
+        self.datetime_fmt = "%Y-%m-%d@%H:%M:%S"
+        self.datetime_color = Foreground.CYAN
+
+        self.stack_info_wrapper = "[]"
+        self.stack_info_format = "{file}@L{loc}"
+        self.stack_info_color = Foreground.YELLOW
+
+        self.log_level_wrapper = "[]"
+        self.log_level_colors = {
             LogLevel.Verbose: Foreground.CYAN,
             LogLevel.Debug: Foreground.GREEN,
             LogLevel.Info: Foreground.WHITE,
@@ -177,7 +186,7 @@ class ColoredLogger(Logger):
             LogLevel.Critical: Foreground.RED,
         }
 
-        self.modifiers = {
+        self.log_level_modifiers = {
             LogLevel.Verbose: Modifier.ITALIC,
             LogLevel.Debug: Modifier.ITALIC,
             LogLevel.Info: Modifier.NONE,
@@ -185,10 +194,6 @@ class ColoredLogger(Logger):
             LogLevel.Error: Modifier.BOLD,
             LogLevel.Critical: Modifier.INVERSE,
         }
-
-        self.datetime_fmt = "%Y-%m-%d@%H:%M:%S"
-        self.datetime_color = Foreground.CYAN
-        self.file_info_color = Foreground.YELLOW
 
     @override
     def _format(
@@ -202,9 +207,9 @@ class ColoredLogger(Logger):
         loc = frame.lineno or 0
 
         return (
-            f"{self.datetime_color}({dt}){Modifier.RESET} "
-            f"{self.file_info_color}[{file}@L{loc}]{Modifier.RESET} "
-            f"{self.modifiers[level]}{self.colors[level]}{super()._format(message, level)}{Modifier.RESET}"
+            f"{self.datetime_color}{surround_with(dt, wrapper=self.datetime_wrapper)}{Modifier.RESET} "
+            f"{self.stack_info_color}{surround_with(self.stack_info_format.format(file=file, loc=loc), wrapper=self.stack_info_wrapper)}{Modifier.RESET} "
+            f"{self.log_level_modifiers[level]}{self.log_level_colors[level]}{surround_with(LogLevel.ensure(level).name, wrapper=self.log_level_wrapper)} {message}{end}{Modifier.RESET}"
         )
 
 
