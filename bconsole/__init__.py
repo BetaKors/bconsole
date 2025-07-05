@@ -37,9 +37,9 @@ __all__ = [
 _loggers = dict[str, Logger]()
 
 
-def get_logger(
-    name: str, /, cls_or_factory: type[Logger] | Callable[[], Logger] = ColoredLogger
-) -> Logger:
+def get_logger[T: Logger](
+    name: str, /, cls_or_factory: type[T] | Callable[[], T] = ColoredLogger
+) -> T:
     """
     Gets a logger with the specified name.\n
     If the logger does not exist, it is created and added to the `loggers` dictionary.\n
@@ -54,7 +54,7 @@ def get_logger(
     """
     if name not in _loggers:
         _loggers[name] = cls_or_factory()
-    return _loggers[name]
+    return _loggers[name]  # type: ignore
 
 
 getLogger = get_logger
