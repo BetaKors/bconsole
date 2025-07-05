@@ -1,5 +1,4 @@
 import traceback
-from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
@@ -191,8 +190,6 @@ class ColoredLogger(Logger):
         self.datetime_color = Foreground.CYAN
         self.file_info_color = Foreground.YELLOW
 
-        super().__init__()
-
     @override
     def _format(
         self, message: str, level: LogLevelLike = LogLevel.Info, /, end: str = "\n"
@@ -211,12 +208,13 @@ class ColoredLogger(Logger):
         )
 
 
-@dataclass
 class ColoredFileLogger(ColoredLogger):
     """A logger that logs both to a file and the terminal. Can be used as a context manager."""
 
-    _file: TextIO
-    _always_flush: bool = True
+    def __init__(self, file: TextIO, /, *, always_flush: bool = True) -> None:
+        super().__init__()
+        self._file = file
+        self._always_flush = always_flush
 
     def __enter__(self) -> Self:
         return self
