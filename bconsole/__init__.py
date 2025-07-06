@@ -37,23 +37,27 @@ __all__ = [
 _loggers = dict[str, Logger]()
 
 
-def get_logger[T: Logger](
-    name: str, /, cls_or_factory: type[T] | Callable[[], T] = ColoredLogger
+def get_logger[T: Logger = ColoredLogger](
+    name: str, /, cls_obj_or_factory: T | type[T] | Callable[[], T] = ColoredLogger
 ) -> T:
     """
-    Gets a logger with the specified name.\n
-    If the logger does not exist, it is created and added to the `loggers` dictionary.\n
+    Gets a logger with the specified name.
+    If it does not exist, it will be generated using the class or factory provided or simply added if a direct instance of Logger is provided instead.\n
     Purely for compatibility with the `logging` module.
 
     ### Args:
         name (str): The name of the logger.
-        cls_or_factory (type[Logger], optional): The class or factory to use to create the logger. Defaults to ColoredLogger.
+        cls_obj_or_factory (T, type[T], Callable[[], T], optional): A direct instance, or the class or factory needed to create the Logger. Defaults to ColoredLogger.
 
     ### Returns:
         Logger: The logger.
     """
     if name not in _loggers:
-        _loggers[name] = cls_or_factory()
+        _loggers[name] = (
+            cls_obj_or_factory
+            if isinstance(cls_obj_or_factory, Logger)
+            else cls_obj_or_factory()
+        )
     return cast(T, _loggers[name])
 
 
