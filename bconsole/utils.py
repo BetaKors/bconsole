@@ -1,6 +1,6 @@
 import re
 from difflib import SequenceMatcher
-from typing import Any, Iterable
+from typing import Any, Iterable, cast
 
 __all__ = [
     "clear_ansi",
@@ -227,7 +227,7 @@ def hex_to_rgb(hex: str, /) -> tuple[int, int, int]:
             f"Invalid hexadecimal color code: {hex}. Note that the alpha channel is not supported."
         )
 
-    return tuple(int(hex[i : i + 2], 16) for i in (0, 2, 4))  # type: ignore
+    return cast(tuple[int, int, int], tuple(int(hex[i : i + 2], 16) for i in (0, 2, 4)))
 
 
 def hsl_to_rgb(h: float, s: float, l: float, /) -> tuple[float, float, float]:  # noqa: E741

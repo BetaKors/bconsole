@@ -6,7 +6,7 @@ __version__ = "0.0.21"
 __license__ = "MIT"
 __url__ = "https://github.com/BetaKors/bconsole"
 
-from typing import Callable
+from typing import Callable, cast
 
 from colorama import just_fix_windows_console
 
@@ -54,7 +54,7 @@ def get_logger[T: Logger](
     """
     if name not in _loggers:
         _loggers[name] = cls_or_factory()
-    return _loggers[name]  # type: ignore
+    return cast(T, _loggers[name])
 
 
 getLogger = get_logger
