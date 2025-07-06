@@ -1,6 +1,6 @@
 import traceback
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum, auto
 from pathlib import Path
 from sys import stderr, stdout
 from typing import Any, Literal, Self, TextIO, override
@@ -16,15 +16,15 @@ type LogLevelLike = (
 )
 
 
-class LogLevel(Enum):
+class LogLevel(StrEnum):
     """Logging levels."""
 
-    Verbose = "verbose"
-    Debug = "debug"
-    Info = "info"
-    Warning = "warning"
-    Error = "error"
-    Critical = "critical"
+    Verbose = auto()
+    Debug = auto()
+    Info = auto()
+    Warning = auto()
+    Error = auto()
+    Critical = auto()
 
     @classmethod
     def ensure(cls, level: LogLevelLike, /) -> Self:
