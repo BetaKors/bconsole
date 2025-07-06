@@ -37,7 +37,7 @@ class LogLevel(StrEnum):
         ### Returns:
             LogLevel: The log level.
         """
-        return cls[level.title()] if isinstance(level, str) else level  # type: ignore
+        return level if isinstance(level, StrEnum) else cls[level.title()]  # type: ignore
 
 
 class Logger:
@@ -271,5 +271,5 @@ class ColoredFileLogger(ColoredLogger):
 
     def close(self) -> None:
         """Closes the file."""
-        if self._file is not None and not self._file.closed:  # type: ignore
+        if not self._file.closed:
             self._file.close()
