@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import traceback
 from datetime import datetime
-from enum import StrEnum, auto
+from enum import IntEnum, auto
 from pathlib import Path
 from sys import stderr, stdout
 from typing import Any, Literal, Self, TextIO, override
@@ -12,11 +14,12 @@ __all__ = ["LogLevel", "LogLevelLike", "Logger", "ColoredLogger", "ColoredFileLo
 
 """Type alias for a log level or a string representing a log level."""
 type LogLevelLike = (
-    LogLevel | Literal["verbose", "debug", "info", "warning", "error", "critical"]
+    LogLevel
+    | Literal["verbose", "trace", "debug", "info", "warning", "error", "critical"]
 )
 
 
-class LogLevel(StrEnum):
+class LogLevel(IntEnum):
     """Logging levels."""
 
     Verbose = auto()
@@ -25,6 +28,9 @@ class LogLevel(StrEnum):
     Warning = auto()
     Error = auto()
     Critical = auto()
+
+    Trace = Verbose  # alias
+    """Alias for `LogLevel.Verbose`."""
 
     @classmethod
     def ensure(cls, level: LogLevelLike, /) -> Self:
@@ -37,7 +43,7 @@ class LogLevel(StrEnum):
         ### Returns:
             LogLevel: The log level.
         """
-        return level if isinstance(level, StrEnum) else cls[level.title()]  # type: ignore
+        return level if isinstance(level, cls) else cls[level.title()]  # type: ignore
 
 
 class Logger:
@@ -79,6 +85,8 @@ class Logger:
             message (str): The message to log.
         """
         self.log(message, LogLevel.Verbose)
+
+    trace = verbose  # alias
 
     def debug(self, message: str, /) -> None:
         """
@@ -194,6 +202,21 @@ class ColoredLogger(Logger):
             LogLevel.Error: Modifier.BOLD,
             LogLevel.Critical: Modifier.INVERSE,
         }
+
+        self.min_log_level = LogLevel.Verbose
+
+    def log(
+        self,
+        message: str,
+        /,
+        level: LogLevelLike = LogLevel.Info,
+        *,
+        end: str = "\n",
+        flush: bool = False,
+    ) -> str:
+        if LogLevel.ensure(level) < self.min_log_level:
+            return self._format(message, level, end=end)
+        return super().log(message, level, end=end, flush=flush)
 
     @override
     def _format(

@@ -1,10 +1,11 @@
 from datetime import datetime
 
-from bconsole import ColoredFileLogger
+from bconsole import ColoredFileLogger, LogLevel
 
 logger = ColoredFileLogger.from_path(f"logs/{datetime.now().strftime('%Y-%m-%d')}.log")
+logger.min_log_level = LogLevel.Debug
 
-logger.verbose("This is a verbose message.")
+logger.verbose("This verbose message will not be logged.")
 logger.debug("This is a debug message.")
 logger.info("This is an info message.")
 logger.log("This is also an info message.", level="info")
