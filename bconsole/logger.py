@@ -8,7 +8,7 @@ from sys import stderr, stdout
 from typing import Any, Literal, Self, TextIO, override
 
 from .core import Foreground, Modifier
-from .utils import clear_ansi, surround_with
+from .utils import clear_ansi, first, surround_with
 
 __all__ = ["LogLevel", "LogLevelLike", "Logger", "ColoredLogger", "ColoredFileLogger"]
 
@@ -222,7 +222,13 @@ class ColoredLogger(Logger):
     def _format(
         self, message: str, level: LogLevelLike = LogLevel.Info, /, end: str = "\n"
     ) -> str:
-        frame = traceback.extract_stack(limit=5)[0]
+        frame = first(
+            filter(
+                lambda frame: "bconsole" not in frame.filename,
+                reversed(stack := traceback.extract_stack(limit=10)),
+            ),
+            stack[0],
+        )
 
         level = LogLevel.ensure(level)
         dt = datetime.now().strftime(self.datetime_fmt)
