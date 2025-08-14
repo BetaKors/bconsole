@@ -2,7 +2,7 @@
 
 A logging library that also provides helper classes and functions to easily add color and manipulate the terminal.
 
-Requires [colorama](https://pypi.org/project/colorama/) for windows compatibility
+Requires [colorama](https://pypi.org/project/colorama/) for windows compatibility.
 
 ## Usage
 
