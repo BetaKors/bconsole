@@ -5,7 +5,7 @@ from re import findall as find_all
 from sys import stdin, stdout
 from typing import Any, Final, Literal, NoReturn, TextIO, cast, final, override
 
-from .utils import combine_metaclasses, hex_to_rgb, hsl_to_rgb
+from .utils import CombinableMetaclass, hex_to_rgb, hsl_to_rgb
 
 __all__ = [
     "TerminalColor",
@@ -19,7 +19,7 @@ __all__ = [
 _ESC = "\033"
 
 
-class _ImmutableMeta(type):
+class _ImmutableMeta(CombinableMetaclass):
     """
     Metaclass that makes classes immutable, not their instances.
     Does not prevent the addition of new attributes.
@@ -47,9 +47,7 @@ class _Uninitiliazable:
     def __init__(self) -> None: ...
 
 
-class TerminalColor(
-    _Uninitiliazable, ABC, metaclass=combine_metaclasses(_ImmutableMeta, ABCMeta)
-):
+class TerminalColor(_Uninitiliazable, ABC, metaclass=_ImmutableMeta and ABCMeta):
     """Abstract class for terminal colors."""
 
     RESET: Final = f"{_ESC}[0m"
@@ -71,6 +69,15 @@ class TerminalColor(
         """
         raise NotImplementedError()
 
+    @staticmethod
+    @abstractmethod
+    def from_id(id: int, /) -> str:
+        """
+        Creates an Escape Code Sequence for the terminal color using an ID from 0 to 255.
+        Use [this](https://user-images.githubusercontent.com/995050/47952855-ecb12480-df75-11e8-89d4-ac26c50e80b9.png) table to find the ID for a color.
+        """
+        raise NotImplementedError()
+
     @final
     @classmethod
     def from_hex(cls, hex: str, /) -> str:
@@ -83,7 +90,7 @@ class TerminalColor(
         ### Returns:
             str: Escape Code Sequence
         """
-        if cls == TerminalColor:
+        if cls is TerminalColor:
             raise NotImplementedError(
                 "TerminalColor.from_hex is not implemented. Use one of the subclasses instead."
             )
@@ -139,6 +146,21 @@ class TerminalColor(
         """
         return f"{color}{text}{Modifier.RESET}"
 
+    @final
+    @staticmethod
+    def brighten(color: str, /) -> str:
+        """
+        Brightens the specified color.
+        Note that this functionality is not supported by all terminals.
+
+        ### Args:
+            color (str): The color to brighten.
+
+        ### Returns:
+            str: The brightened color.
+        """
+        return color.replace("[", "[1;")
+
 
 @final
 class Foreground(TerminalColor):
@@ -153,10 +175,18 @@ class Foreground(TerminalColor):
     CYAN: Final = f"{_ESC}[36m"
     WHITE: Final = f"{_ESC}[37m"
 
+    DEFAULT: Final = f"{_ESC}[39m"
+    "Resets the foreground color to the default and keeps any background color or modifiers being used."
+
     @override
     @staticmethod
     def from_rgb(r: int, g: int, b: int, /) -> str:
         return f"{_ESC}[38;2;{r};{g};{b}m"
+
+    @override
+    @staticmethod
+    def from_id(id: int, /) -> str:
+        return f"{_ESC}[38;5;{id}m"
 
 
 @final
@@ -172,10 +202,18 @@ class Background(TerminalColor):
     CYAN: Final = f"{_ESC}[46m"
     WHITE: Final = f"{_ESC}[47m"
 
+    DEFAULT: Final = f"{_ESC}[49m"
+    "Resets the background color to the default and keeps any foreground color or modifiers being used."
+
     @override
     @staticmethod
     def from_rgb(r: int, g: int, b: int, /) -> str:
         return f"{_ESC}[48;2;{r};{g};{b}m"
+
+    @override
+    @staticmethod
+    def from_id(id: int, /) -> str:
+        return f"{_ESC}[48;5;{id}m"
 
 
 @final
@@ -302,7 +340,7 @@ class Cursor(_Uninitiliazable, metaclass=_ImmutableMeta):
 
         #### Note:
         The escape sequences for "save cursor position" and "restore cursor position" were never standardised as part of
-        the ANSI (or subsequent) specs, resulting in two different sequences known in some circles as "DEC" and "SCO":\n
+        the ANSI (or subsequent) specs, resulting in two different sequences known as "DEC" and "SCO":\n
             DEC: ESC7 (save) and ESC8 (restore)
             SCO: ESC[s (save) and ESC[u (restore)
 
@@ -328,7 +366,7 @@ class Cursor(_Uninitiliazable, metaclass=_ImmutableMeta):
 
         #### Note:
         The escape sequences for "save cursor position" and "restore cursor position" were never standardised as part of
-        the ANSI (or subsequent) specs, resulting in two different sequences known in some circles as "DEC" and "SCO":\n
+        the ANSI (or subsequent) specs, resulting in two different sequences known as "DEC" and "SCO":\n
             DEC: ESC7 (save) and ESC8 (restore)
             SCO: ESC[s (save) and ESC[u (restore)
 

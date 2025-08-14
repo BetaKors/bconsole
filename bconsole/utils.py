@@ -1,6 +1,7 @@
 import re
 from difflib import SequenceMatcher
-from typing import Any, Iterable, cast
+from operator import itemgetter
+from typing import Any, Iterable, cast, final
 
 __all__ = [
     "clear_ansi",
@@ -16,6 +17,15 @@ __all__ = [
 
 
 _ESC = "\033"
+
+
+class CombinableMetaclass(type):
+    @final
+    @classmethod
+    def combine(cls: type, other: type, /) -> type:
+        return combine_metaclasses(cls, other)
+
+    __and__ = combine
 
 
 def combine_metaclasses(*metaclasses: type[type]) -> type[type]:
@@ -122,6 +132,8 @@ def replace_last(text: str, old: str, new: str, /) -> str:
 
 def format_iter(
     items: Iterable[str],
+    /,
+    *,
     sep: str = ", ",
     final_sep: str = " or ",
     oxford_comma: bool = True,
@@ -176,7 +188,7 @@ def find_closest_match[TDefault](
     """
     match, max_value = max(
         {o: SequenceMatcher(None, string, o).ratio() for o in options}.items(),
-        key=lambda i: i[1],
+        key=itemgetter(1),
     )
     return match if max_value >= min_value else default
 
@@ -195,7 +207,7 @@ def clear_ansi(string: str, /) -> str:
     return re.sub(rf"{_ESC}\[[0-9;]*m", "", string)
 
 
-def clamp(value: float, min_: float, max_: float) -> float:
+def clamp(value: float, min_: float, max_: float, /) -> float:
     """
     Clamps a value between a minimum and maximum value.
 

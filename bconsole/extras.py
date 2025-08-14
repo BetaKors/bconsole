@@ -9,7 +9,6 @@ from .core import (
     _ImmutableMeta,
     _Uninitiliazable,
 )
-from .utils import combine_metaclasses
 
 
 def _gen_metaclass(f: Callable[[str], str], /) -> type:
@@ -34,7 +33,7 @@ def _gen_metaclass(f: Callable[[str], str], /) -> type:
         type: The metaclass.
     """
 
-    class _ApplyFunction(type):
+    class __proxy__(type):
         def __new__(
             mcs: type,
             name: str,
@@ -47,7 +46,7 @@ def _gen_metaclass(f: Callable[[str], str], /) -> type:
             }
             return super().__new__(mcs, name, bases, namespace, **kwargs)  # type: ignore
 
-    return _ApplyFunction
+    return __proxy__
 
 
 def _apply_if_hex(f: Callable[[str], str], /) -> Callable[[Any], Any]:
@@ -214,17 +213,13 @@ class CSSHexColors(_Uninitiliazable, metaclass=_ImmutableMeta):
 
 class CSSForeground(
     CSSHexColors,
-    metaclass=combine_metaclasses(
-        _gen_metaclass(_apply_if_hex(Foreground.from_hex)), _ImmutableMeta
-    ),
+    metaclass=_ImmutableMeta and _gen_metaclass(_apply_if_hex(Foreground.from_hex)),
 ):
     """CSS foreground colors."""
 
 
 class CSSBackground(
     CSSHexColors,
-    metaclass=combine_metaclasses(
-        _gen_metaclass(_apply_if_hex(Background.from_hex)), _ImmutableMeta
-    ),
+    metaclass=_ImmutableMeta and _gen_metaclass(_apply_if_hex(Background.from_hex)),
 ):
     """CSS background colors."""
