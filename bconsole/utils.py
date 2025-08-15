@@ -16,27 +16,27 @@ __all__ = [
 ]
 
 
-_ESC = "\033"
+type Metaclass = type[type]
 
 
 class CombinableMetaclass(type):
     @final
     @classmethod
-    def combine(cls: type, other: type, /) -> type:
+    def combine(cls: Metaclass, other: Metaclass, /) -> Metaclass:
         return combine_metaclasses(cls, other)
 
     __and__ = combine
 
 
-def combine_metaclasses(*metaclasses: type[type]) -> type[type]:
+def combine_metaclasses(*metaclasses: Metaclass) -> Metaclass:
     """
     Combines multiple metaclasses into a type for easier subclassing.
 
     ### Args:
-        metaclasses (type[type]): The metaclasses to combine.
+        metaclasses (Metaclass): The metaclasses to combine.
 
     ### Returns:
-        type[type]: The combined metaclass.
+        Metaclass: The combined metaclass.
 
     ### Raises:
         ValueError: If no metaclasses are provided.
@@ -47,15 +47,16 @@ def combine_metaclasses(*metaclasses: type[type]) -> type[type]:
     elif len(metaclasses) == 1:
         return metaclasses[0]
 
-    mcs = type(
+    __proxy__ = type(
         "_".join(C.__name__.replace("_", "") for C in metaclasses),
         (*metaclasses,),
         {k: v for C in metaclasses for k, v in dict[str, Any](C.__dict__).items()},  # type: ignore
     )
 
-    mcs.__doc__ = f"A metaclass that combines {format_iter((surround_with(C.__name__, wrapper='`') for C in metaclasses), final_sep=' and ')}."
+    __proxy__.__name__ = "_".join(C.__name__.replace("_", "") for C in metaclasses)
+    __proxy__.__doc__ = f"A metaclass that combines {format_iter((surround_with(C.__name__, wrapper='`') for C in metaclasses), final_sep=' and ')}."
 
-    return mcs
+    return __proxy__
 
 
 def first[T, TDefault](
@@ -204,7 +205,7 @@ def clear_ansi(string: str, /) -> str:
     ### Returns:
         str: The cleared string.
     """
-    return re.sub(rf"{_ESC}\[[0-9;]*m", "", string)
+    return re.sub(r"\033\[[0-9;]*m", "", string)
 
 
 def clamp(value: float, min_: float, max_: float, /) -> float:

@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, ABCMeta, abstractmethod
 from re import findall as find_all
 from sys import stdin, stdout
-from typing import Any, Final, Literal, NoReturn, TextIO, cast, final, override
+from typing import Any, Final, Literal, NoReturn, TextIO, final, override
 
 from .utils import CombinableMetaclass, hex_to_rgb, hsl_to_rgb
 
@@ -162,58 +162,39 @@ class TerminalColor(_Uninitiliazable, ABC, metaclass=_ImmutableMeta and ABCMeta)
         return color.replace("[", "[1;")
 
 
-@final
-class Foreground(TerminalColor):
-    """Foreground colors."""
+def _make_color_cls(name: str, /, *, code: int):
+    @final
+    class __proxy__(TerminalColor):
+        BLACK: Final = f"{_ESC}[{code}0m"
+        RED: Final = f"{_ESC}[{code}1m"
+        GREEN: Final = f"{_ESC}[{code}2m"
+        YELLOW: Final = f"{_ESC}[{code}3m"
+        BLUE: Final = f"{_ESC}[{code}4m"
+        MAGENTA: Final = f"{_ESC}[{code}5m"
+        CYAN: Final = f"{_ESC}[{code}6m"
+        WHITE: Final = f"{_ESC}[{code}7m"
 
-    BLACK: Final = f"{_ESC}[30m"
-    RED: Final = f"{_ESC}[31m"
-    GREEN: Final = f"{_ESC}[32m"
-    YELLOW: Final = f"{_ESC}[33m"
-    BLUE: Final = f"{_ESC}[34m"
-    MAGENTA: Final = f"{_ESC}[35m"
-    CYAN: Final = f"{_ESC}[36m"
-    WHITE: Final = f"{_ESC}[37m"
+        DEFAULT: Final = f"{_ESC}[{code}9m"
+        "Resets the color to the default and keeps any other modifiers being used."
 
-    DEFAULT: Final = f"{_ESC}[39m"
-    "Resets the foreground color to the default and keeps any background color or modifiers being used."
+        @override
+        @staticmethod
+        def from_rgb(r: int, g: int, b: int, /) -> str:
+            return f"{_ESC}[{code}8;2;{r};{g};{b}m"
 
-    @override
-    @staticmethod
-    def from_rgb(r: int, g: int, b: int, /) -> str:
-        return f"{_ESC}[38;2;{r};{g};{b}m"
+        @override
+        @staticmethod
+        def from_id(id: int, /) -> str:
+            return f"{_ESC}[{code}8;5;{id}m"
 
-    @override
-    @staticmethod
-    def from_id(id: int, /) -> str:
-        return f"{_ESC}[38;5;{id}m"
+    __proxy__.__name__ = name
+    __proxy__.__doc__ = f"{name} colors."
+
+    return __proxy__
 
 
-@final
-class Background(TerminalColor):
-    """Background colors."""
-
-    BLACK: Final = f"{_ESC}[40m"
-    RED: Final = f"{_ESC}[41m"
-    GREEN: Final = f"{_ESC}[42m"
-    YELLOW: Final = f"{_ESC}[43m"
-    BLUE: Final = f"{_ESC}[44m"
-    MAGENTA: Final = f"{_ESC}[45m"
-    CYAN: Final = f"{_ESC}[46m"
-    WHITE: Final = f"{_ESC}[47m"
-
-    DEFAULT: Final = f"{_ESC}[49m"
-    "Resets the background color to the default and keeps any foreground color or modifiers being used."
-
-    @override
-    @staticmethod
-    def from_rgb(r: int, g: int, b: int, /) -> str:
-        return f"{_ESC}[48;2;{r};{g};{b}m"
-
-    @override
-    @staticmethod
-    def from_id(id: int, /) -> str:
-        return f"{_ESC}[48;5;{id}m"
+Foreground = _make_color_cls("Foreground", code=3)
+Background = _make_color_cls("Background", code=4)
 
 
 @final
@@ -264,7 +245,7 @@ class Cursor(_Uninitiliazable, metaclass=_ImmutableMeta):
         while (c := file_in.read(1)) != "R":
             buf += c
 
-        return cast(tuple[int, int], tuple(map(int, find_all(r"\d+", buf))))
+        return tuple(map(int, find_all(r"\d+", buf)))  # type: ignore
 
     @staticmethod
     def set_pos(column: int, line: int, /) -> str:
