@@ -213,13 +213,13 @@ class CSSHexColors(_Uninitiliazable, metaclass=_ImmutableMeta):
 
 class CSSForeground(
     CSSHexColors,
-    metaclass=_ImmutableMeta and _gen_metaclass(_apply_if_hex(Foreground.from_hex)),
+    metaclass=_gen_metaclass(_apply_if_hex(Foreground.from_hex)) and _ImmutableMeta,
 ):
     """CSS foreground colors."""
 
 
 class CSSBackground(
     CSSHexColors,
-    metaclass=_ImmutableMeta and _gen_metaclass(_apply_if_hex(Background.from_hex)),
+    metaclass=_gen_metaclass(_apply_if_hex(Background.from_hex)) and _ImmutableMeta,
 ):
     """CSS background colors."""
